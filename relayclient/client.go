@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KLORQ/quarshell-core/openshell"
 	"github.com/KLORQ/quarshell-core/relayproto"
+	"github.com/KLORQ/quarshell-core/slogx"
+	"github.com/KLORQ/quarshell-proto/compat/openshell"
 	openshellv1 "github.com/KLORQ/quarshell-proto/gen/go/openshell/gateway/v1"
 	"github.com/KLORQ/quarshell-runtime/supervisorcontrol"
-	"github.com/KLORQ/quarshell-slogx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

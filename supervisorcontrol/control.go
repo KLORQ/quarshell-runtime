@@ -30,18 +30,18 @@ const (
 	OperationProcess          = "process_event"
 	OperationFlush            = "flush_process_events"
 	maxMessageBytes           = 8 << 10
-	EnvSocket                 = "CAUTEM_SUPERVISOR_CONTROL_SOCKET"
-	EnvEndpoint               = "CAUTEM_SUPERVISOR_CONTROL_ENDPOINT"
-	EnvListen                 = "CAUTEM_SUPERVISOR_CONTROL_LISTEN"
-	EnvClientCA               = "CAUTEM_SUPERVISOR_CONTROL_CLIENT_CA"
-	EnvClientCert             = "CAUTEM_SUPERVISOR_CONTROL_CLIENT_CERT"
-	EnvClientKey              = "CAUTEM_SUPERVISOR_CONTROL_CLIENT_KEY"
-	EnvPrivateDir             = "CAUTEM_SUPERVISOR_CONTROL_PRIVATE_DIR"
-	EnvServerCA               = "CAUTEM_SUPERVISOR_CONTROL_SERVER_CA"
-	EnvServerCert             = "CAUTEM_SUPERVISOR_CONTROL_SERVER_CERT"
-	EnvServerKey              = "CAUTEM_SUPERVISOR_CONTROL_SERVER_KEY"
-	EnvExpectedClientIdentity = "CAUTEM_SUPERVISOR_CONTROL_EXPECTED_CLIENT_IDENTITY"
-	unixServerName            = "cautem-supervisor-control"
+	EnvSocket                 = "QUARSHELL_SUPERVISOR_CONTROL_SOCKET"
+	EnvEndpoint               = "QUARSHELL_SUPERVISOR_CONTROL_ENDPOINT"
+	EnvListen                 = "QUARSHELL_SUPERVISOR_CONTROL_LISTEN"
+	EnvClientCA               = "QUARSHELL_SUPERVISOR_CONTROL_CLIENT_CA"
+	EnvClientCert             = "QUARSHELL_SUPERVISOR_CONTROL_CLIENT_CERT"
+	EnvClientKey              = "QUARSHELL_SUPERVISOR_CONTROL_CLIENT_KEY"
+	EnvPrivateDir             = "QUARSHELL_SUPERVISOR_CONTROL_PRIVATE_DIR"
+	EnvServerCA               = "QUARSHELL_SUPERVISOR_CONTROL_SERVER_CA"
+	EnvServerCert             = "QUARSHELL_SUPERVISOR_CONTROL_SERVER_CERT"
+	EnvServerKey              = "QUARSHELL_SUPERVISOR_CONTROL_SERVER_KEY"
+	EnvExpectedClientIdentity = "QUARSHELL_SUPERVISOR_CONTROL_EXPECTED_CLIENT_IDENTITY"
+	unixServerName            = "quarshell-supervisor-control"
 	VMControlProtocol         = uint32(2)
 	peerClaimsClockSkew       = 60 * time.Second
 	maxPeerClaimNonces        = 16384
@@ -82,8 +82,8 @@ func ParseVMIdentity(raw string) (VMIdentity, error) {
 		return id, errors.New("supervisorcontrol: VM identity must be canonical")
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "spiffe" || u.Host != "cautem.vm" || u.RawQuery != "" || u.Fragment != "" {
-		return id, errors.New("supervisorcontrol: VM identity must be a canonical cautem.vm SPIFFE URI")
+	if err != nil || u.Scheme != "spiffe" || u.Host != "quarshell.vm" || u.RawQuery != "" || u.Fragment != "" {
+		return id, errors.New("supervisorcontrol: VM identity must be a canonical quarshell.vm SPIFFE URI")
 	}
 	if u.String() != raw || u.User != nil || u.Opaque != "" {
 		return id, errors.New("supervisorcontrol: VM identity URI is not canonical")

@@ -204,7 +204,7 @@ func (m *linuxProcessEventMonitor) emit(activity string, pid, parentPID int, exe
 		Operation: supervisorcontrol.OperationProcess, InstanceID: m.instance, Process: &event,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "cautem-supervisor: process event delivery failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "quarshell-supervisor: process event delivery failed: %v\n", err)
 	}
 }
 

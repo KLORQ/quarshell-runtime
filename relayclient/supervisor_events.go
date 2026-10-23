@@ -9,9 +9,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/KLORQ/quarshell-core/slogx"
 	openshellv1 "github.com/KLORQ/quarshell-proto/gen/go/openshell/gateway/v1"
 	"github.com/KLORQ/quarshell-runtime/supervisorcontrol"
-	"github.com/KLORQ/quarshell-slogx"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

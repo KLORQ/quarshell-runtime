@@ -52,14 +52,14 @@ func TestOIDCValidateRS256(t *testing.T) {
 	tok := mustSignJWT(t, key, map[string]any{
 		"iss": issuer,
 		"sub": "user-1",
-		"aud": "cautem",
+		"aud": "quarshell",
 		"exp": time.Now().Add(time.Hour).Unix(),
 		"iat": time.Now().Unix(),
 	})
 
 	v, err := idp.NewOIDC(idp.OIDCConfig{
 		Issuer:            issuer,
-		Audience:          "cautem",
+		Audience:          "quarshell",
 		AllowInsecureHTTP: true,
 		HTTPClient:        ts.Client(),
 	})

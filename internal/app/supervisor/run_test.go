@@ -104,44 +104,44 @@ func TestRunRejectsEmptyCommand(t *testing.T) {
 
 func TestWorkloadEnvironmentDropsSupervisorControlCredentials(t *testing.T) {
 	privateValues := map[string]string{
-		supervisorcontrol.EnvSocket:                 "/run/cautem/control.sock",
+		supervisorcontrol.EnvSocket:                 "/run/quarshell/control.sock",
 		supervisorcontrol.EnvEndpoint:               "supervisor.default.svc:5502",
-		supervisorcontrol.EnvClientCA:               "/run/cautem/control/ca.pem",
-		supervisorcontrol.EnvClientCert:             "/run/cautem/control/tls.crt",
-		supervisorcontrol.EnvClientKey:              "/run/cautem/control/tls.key",
+		supervisorcontrol.EnvClientCA:               "/run/quarshell/control/ca.pem",
+		supervisorcontrol.EnvClientCert:             "/run/quarshell/control/tls.crt",
+		supervisorcontrol.EnvClientKey:              "/run/quarshell/control/tls.key",
 		supervisorcontrol.EnvPrivateDir:             "/untrusted/workload/override",
 		supervisorcontrol.EnvListen:                 "0.0.0.0:5502",
-		supervisorcontrol.EnvServerCA:               "/run/cautem/control/server-ca.pem",
-		supervisorcontrol.EnvServerCert:             "/run/cautem/control/server.crt",
-		supervisorcontrol.EnvServerKey:              "/run/cautem/control/server.key",
-		supervisorcontrol.EnvExpectedClientIdentity: "spiffe://cautem.vm/sandbox/demo",
+		supervisorcontrol.EnvServerCA:               "/run/quarshell/control/server-ca.pem",
+		supervisorcontrol.EnvServerCert:             "/run/quarshell/control/server.crt",
+		supervisorcontrol.EnvServerKey:              "/run/quarshell/control/server.key",
+		supervisorcontrol.EnvExpectedClientIdentity: "spiffe://quarshell.vm/sandbox/demo",
 		relaytarget.EnvListen:                       "0.0.0.0:5503",
-		relaytarget.EnvClientCA:                     "/run/cautem/control/target-client-ca.pem",
-		relaytarget.EnvServerCert:                   "/run/cautem/control/target-server.crt",
-		relaytarget.EnvServerKey:                    "/run/cautem/control/target-server.key",
-		relaytarget.EnvSSHSock:                      "/cautem/ssh/sshd.sock",
-		relaytarget.EnvServerCA:                     "/run/cautem/control/target-server-ca.pem",
-		relaytarget.EnvClientCert:                   "/run/cautem/control/target-client.crt",
-		relaytarget.EnvClientKey:                    "/run/cautem/control/target-client.key",
-		"CAUTEM_RELAY_TARGET_SOCKET":                "/run/cautem/target.sock",
-		"CAUTEM_MAIN_PROCESS_RESTART_POLICY":        "always",
-		"CAUTEM_GATEWAY_ID":                         "openshell",
-		"CAUTEM_GATEWAY_SANDBOX_ID":                 "sandbox-a",
-		"CAUTEM_GATEWAY_VERIFICATION_KEYS_FILE":     "/run/cautem/supervisor-control-private/gateway-verification-keys.json",
-		"CAUTEM_SANDBOX_PROTOCOL_TOKEN":             "private-sandbox-jwt",
-		"CAUTEM_SANDBOX_TOKEN":                      "private-gateway-jwt",
-		"CAUTEM_RUNTIME_GENERATION":                 "g0000000000000001",
-		"CAUTEM_AUTH_EPOCH":                         "2",
+		relaytarget.EnvClientCA:                     "/run/quarshell/control/target-client-ca.pem",
+		relaytarget.EnvServerCert:                   "/run/quarshell/control/target-server.crt",
+		relaytarget.EnvServerKey:                    "/run/quarshell/control/target-server.key",
+		relaytarget.EnvSSHSock:                      "/quarshell/ssh/sshd.sock",
+		relaytarget.EnvServerCA:                     "/run/quarshell/control/target-server-ca.pem",
+		relaytarget.EnvClientCert:                   "/run/quarshell/control/target-client.crt",
+		relaytarget.EnvClientKey:                    "/run/quarshell/control/target-client.key",
+		"QUARSHELL_RELAY_TARGET_SOCKET":             "/run/quarshell/target.sock",
+		"QUARSHELL_MAIN_PROCESS_RESTART_POLICY":     "always",
+		"QUARSHELL_GATEWAY_ID":                      "openshell",
+		"QUARSHELL_GATEWAY_SANDBOX_ID":              "sandbox-a",
+		"QUARSHELL_GATEWAY_VERIFICATION_KEYS_FILE":  "/run/quarshell/supervisor-control-private/gateway-verification-keys.json",
+		"QUARSHELL_SANDBOX_PROTOCOL_TOKEN":          "private-sandbox-jwt",
+		"QUARSHELL_SANDBOX_TOKEN":                   "private-gateway-jwt",
+		"QUARSHELL_RUNTIME_GENERATION":              "g0000000000000001",
+		"QUARSHELL_AUTH_EPOCH":                      "2",
 		supervisorOTLPEndpointEnv:                   "http://collector:4317",
 		supervisorTraceParentEnv:                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
 		supervisorTraceStateEnv:                     "vendor=value",
-		"CAUTEM_TEST_WORKLOAD_VALUE":                "visible",
+		"QUARSHELL_TEST_WORKLOAD_VALUE":             "visible",
 	}
 	for name, value := range privateValues {
 		t.Setenv(name, value)
 	}
 
-	privateDir := "/run/cautem/control"
+	privateDir := "/run/quarshell/control"
 	got := workloadEnvironment(privateDir)
 	joined := strings.Join(got, "\n")
 	for _, name := range []string{
@@ -163,15 +163,15 @@ func TestWorkloadEnvironmentDropsSupervisorControlCredentials(t *testing.T) {
 		relaytarget.EnvServerCA,
 		relaytarget.EnvClientCert,
 		relaytarget.EnvClientKey,
-		"CAUTEM_RELAY_TARGET_SOCKET",
-		"CAUTEM_MAIN_PROCESS_RESTART_POLICY",
-		"CAUTEM_GATEWAY_ID",
-		"CAUTEM_GATEWAY_SANDBOX_ID",
-		"CAUTEM_GATEWAY_VERIFICATION_KEYS_FILE",
-		"CAUTEM_SANDBOX_PROTOCOL_TOKEN",
-		"CAUTEM_SANDBOX_TOKEN",
-		"CAUTEM_RUNTIME_GENERATION",
-		"CAUTEM_AUTH_EPOCH",
+		"QUARSHELL_RELAY_TARGET_SOCKET",
+		"QUARSHELL_MAIN_PROCESS_RESTART_POLICY",
+		"QUARSHELL_GATEWAY_ID",
+		"QUARSHELL_GATEWAY_SANDBOX_ID",
+		"QUARSHELL_GATEWAY_VERIFICATION_KEYS_FILE",
+		"QUARSHELL_SANDBOX_PROTOCOL_TOKEN",
+		"QUARSHELL_SANDBOX_TOKEN",
+		"QUARSHELL_RUNTIME_GENERATION",
+		"QUARSHELL_AUTH_EPOCH",
 		supervisorOTLPEndpointEnv,
 		supervisorTraceParentEnv,
 		supervisorTraceStateEnv,
@@ -180,7 +180,7 @@ func TestWorkloadEnvironmentDropsSupervisorControlCredentials(t *testing.T) {
 			t.Errorf("workload environment leaked %s", name)
 		}
 	}
-	if !strings.Contains(joined, "CAUTEM_TEST_WORKLOAD_VALUE=visible") {
+	if !strings.Contains(joined, "QUARSHELL_TEST_WORKLOAD_VALUE=visible") {
 		t.Fatal("ordinary workload environment variable was removed")
 	}
 	if !strings.Contains(joined, supervisorcontrol.EnvPrivateDir+"="+privateDir) {
@@ -190,8 +190,8 @@ func TestWorkloadEnvironmentDropsSupervisorControlCredentials(t *testing.T) {
 
 func TestHasSandboxSessionEnvironmentDetectsPartialCredentialInjection(t *testing.T) {
 	keys := []string{
-		"CAUTEM_GATEWAY_ID", "CAUTEM_GATEWAY_SANDBOX_ID", "CAUTEM_RUNTIME_GENERATION",
-		"CAUTEM_AUTH_EPOCH", "CAUTEM_GATEWAY_VERIFICATION_KEYS_FILE", "CAUTEM_SANDBOX_PROTOCOL_TOKEN",
+		"QUARSHELL_GATEWAY_ID", "QUARSHELL_GATEWAY_SANDBOX_ID", "QUARSHELL_RUNTIME_GENERATION",
+		"QUARSHELL_AUTH_EPOCH", "QUARSHELL_GATEWAY_VERIFICATION_KEYS_FILE", "QUARSHELL_SANDBOX_PROTOCOL_TOKEN",
 	}
 	previous := make(map[string]string, len(keys))
 	wasSet := make(map[string]bool, len(keys))
@@ -214,7 +214,7 @@ func TestHasSandboxSessionEnvironmentDetectsPartialCredentialInjection(t *testin
 	if hasSandboxSessionEnvironment() {
 		t.Fatal("empty supervisor environment was treated as a partial session")
 	}
-	if err := os.Setenv("CAUTEM_SANDBOX_PROTOCOL_TOKEN", "partial-state"); err != nil {
+	if err := os.Setenv("QUARSHELL_SANDBOX_PROTOCOL_TOKEN", "partial-state"); err != nil {
 		t.Fatal(err)
 	}
 	if !hasSandboxSessionEnvironment() {

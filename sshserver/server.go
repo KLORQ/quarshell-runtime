@@ -6,13 +6,16 @@
 // Channel policy (fail-closed):
 //   - session: shell / exec via login shell, optional PTY, allowlisted env.
 //   - direct-tcpip: loopback destinations only, valid port range.
-//   - agent forwarding, X11, reverse forwarding, streamlocal, subsystems: refused.
+//   - only the openshell-main subsystem may attach to the canonical workload;
+//     all other subsystems, agent forwarding, X11 and reverse forwarding fail.
 package sshserver
 
 import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,13 +27,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KLORQ/quarshell-slogx"
+	"github.com/KLORQ/quarshell-core/slogx"
 	"golang.org/x/crypto/ssh"
 )
 
 // EnvNoLoginShell selects `bash -c` instead of `bash -lc` for exec requests
 // (OpenShell OPENSHELL_NO_LOGIN_SHELL).
-const EnvNoLoginShell = "CAUTEM_NO_LOGIN_SHELL"
+const EnvNoLoginShell = "QUARSHELL_NO_LOGIN_SHELL"
 
 // allowedEnv are the only client env requests applied to children.
 var allowedEnv = map[string]bool{
@@ -49,7 +52,7 @@ type Config struct {
 	// Shell is the login shell (default /bin/bash, then /bin/sh).
 	Shell string
 	// InitPath is required and wraps every child as `InitPath -- <argv>`;
-	// cautem-init applies Landlock / privilege drop from policy.
+	// quarshell-init applies Landlock / privilege drop from policy.
 	InitPath string
 	// Env is the base child environment (default os.Environ()).
 	Env []string
@@ -58,6 +61,8 @@ type Config struct {
 	Log     *slog.Logger
 	// DialLoopback dials allowed direct-tcpip targets (tests override).
 	DialLoopback func(ctx context.Context, network, addr string) (net.Conn, error)
+	// AttachMainProcess opens an authenticated stream to the canonical workload.
+	AttachMainProcess func(context.Context) (net.Conn, error)
 }
 
 // Server serves SSH connections.
@@ -106,7 +111,7 @@ func New(cfg Config) (*Server, error) {
 	}
 	sc := &ssh.ServerConfig{
 		NoClientAuth:  true,
-		ServerVersion: "SSH-2.0-cautem-sshd",
+		ServerVersion: "SSH-2.0-quarshell-sshd",
 	}
 	sc.AddHostKey(cfg.HostKey)
 	return &Server{cfg: cfg, sshCfg: sc, log: log}, nil
@@ -291,6 +296,7 @@ type session struct {
 	pty  *ptyRequest
 	mu   sync.Mutex
 	proc *process
+	main *mainProcessAttachment
 }
 
 func (s *Server) handleSession(nc ssh.NewChannel) {
@@ -302,9 +308,13 @@ func (s *Server) handleSession(nc ssh.NewChannel) {
 	defer func() {
 		sess.mu.Lock()
 		p := sess.proc
+		main := sess.main
 		sess.mu.Unlock()
 		if p != nil {
 			p.hangup()
+		}
+		if main != nil {
+			_ = main.connection.Close()
 		}
 		_ = ch.Close()
 	}()
@@ -356,26 +366,180 @@ func (ss *session) handle(r *ssh.Request) {
 			if p != nil {
 				p.resize(wc.Rows, wc.Cols)
 			}
+			if ss.main != nil {
+				_ = ss.main.write(mainProcessFrame{Type: "resize", Columns: wc.Cols, Rows: wc.Rows})
+			}
 		}
 		ss.reply(r, true)
 	case "signal":
 		var sig struct{ Signal string }
-		if err := ssh.Unmarshal(r.Payload, &sig); err == nil {
-			ss.mu.Lock()
-			p := ss.proc
-			ss.mu.Unlock()
-			if p != nil {
-				p.signal(sig.Signal)
-			}
+		if err := ssh.Unmarshal(r.Payload, &sig); err != nil {
+			ss.reply(r, false)
+			return
 		}
-		ss.reply(r, true)
-	case "auth-agent-req@openssh.com", "x11-req", "subsystem":
+		ss.mu.Lock()
+		p := ss.proc
+		main := ss.main
+		ss.mu.Unlock()
+		if main != nil {
+			name, ok := canonicalMainSignal(sig.Signal)
+			if !ok || main.write(mainProcessFrame{Type: "signal", Signal: name}) != nil {
+				ss.reply(r, false)
+				return
+			}
+		} else if p != nil {
+			p.signal(sig.Signal)
+		}
+		ss.reply(r, p != nil || main != nil)
+	case "subsystem":
+		var subsystem struct{ Name string }
+		if err := ssh.Unmarshal(r.Payload, &subsystem); err != nil || subsystem.Name != "openshell-main" {
+			ss.srv.deny("session", "subsystem")
+			ss.reply(r, false)
+			return
+		}
+		ss.startMainProcess(r)
+	case "auth-agent-req@openssh.com", "x11-req":
 		ss.srv.deny("session", r.Type)
 		ss.reply(r, false)
 	default:
 		ss.srv.deny("session", r.Type)
 		ss.reply(r, false)
 	}
+}
+
+func canonicalMainSignal(value string) (string, bool) {
+	switch strings.TrimPrefix(strings.ToUpper(strings.TrimSpace(value)), "SIG") {
+	case "TERM":
+		return "terminate", true
+	case "KILL":
+		return "kill", true
+	case "INT":
+		return "interrupt", true
+	case "HUP":
+		return "hangup", true
+	default:
+		return "", false
+	}
+}
+
+type mainProcessFrame struct {
+	Type     string `json:"type"`
+	Data     []byte `json:"data,omitempty"`
+	Columns  uint32 `json:"columns,omitempty"`
+	Rows     uint32 `json:"rows,omitempty"`
+	Signal   string `json:"signal,omitempty"`
+	ExitCode int    `json:"exit_code,omitempty"`
+}
+
+type mainProcessAttachment struct {
+	connection net.Conn
+	mu         sync.Mutex
+}
+
+func (attachment *mainProcessAttachment) write(frame mainProcessFrame) error {
+	encoded, err := json.Marshal(frame)
+	if err != nil {
+		return err
+	}
+	attachment.mu.Lock()
+	defer attachment.mu.Unlock()
+	var header [4]byte
+	binary.BigEndian.PutUint32(header[:], uint32(len(encoded)))
+	if err := writeFull(attachment.connection, header[:]); err != nil {
+		return err
+	}
+	return writeFull(attachment.connection, encoded)
+}
+
+func writeFull(writer io.Writer, payload []byte) error {
+	for len(payload) > 0 {
+		count, err := writer.Write(payload)
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			return io.ErrShortWrite
+		}
+		payload = payload[count:]
+	}
+	return nil
+}
+
+func (ss *session) startMainProcess(request *ssh.Request) {
+	if ss.srv.cfg.AttachMainProcess == nil || ss.main != nil || ss.proc != nil {
+		ss.reply(request, false)
+		return
+	}
+	connection, err := ss.srv.cfg.AttachMainProcess(context.Background())
+	if err != nil {
+		ss.srv.log.Warn("canonical main process attachment failed", slog.String("op", "sshd.main"), slogx.Err(err))
+		ss.reply(request, false)
+		return
+	}
+	attachment := &mainProcessAttachment{connection: connection}
+	ss.main = attachment
+	if ss.pty != nil && ss.pty.Cols > 0 && ss.pty.Rows > 0 {
+		if err := attachment.write(mainProcessFrame{Type: "resize", Columns: ss.pty.Cols, Rows: ss.pty.Rows}); err != nil {
+			_ = connection.Close()
+			ss.main = nil
+			ss.reply(request, false)
+			return
+		}
+	}
+	ss.reply(request, true)
+	go func() {
+		defer connection.Close()
+		defer ss.ch.Close()
+		go func() {
+			buffer := make([]byte, 32<<10)
+			for {
+				n, readErr := ss.ch.Read(buffer)
+				if n > 0 && attachment.write(mainProcessFrame{Type: "stdin", Data: append([]byte(nil), buffer[:n]...)}) != nil {
+					return
+				}
+				if readErr != nil {
+					if errors.Is(readErr, io.EOF) {
+						_ = attachment.write(mainProcessFrame{Type: "eof"})
+					}
+					return
+				}
+			}
+		}()
+		for {
+			var header [4]byte
+			if _, err := io.ReadFull(connection, header[:]); err != nil {
+				return
+			}
+			size := binary.BigEndian.Uint32(header[:])
+			if size == 0 || size > 64<<20 {
+				return
+			}
+			payload := make([]byte, size)
+			if _, err := io.ReadFull(connection, payload); err != nil {
+				return
+			}
+			var frame mainProcessFrame
+			if json.Unmarshal(payload, &frame) != nil {
+				return
+			}
+			switch frame.Type {
+			case "stdout", "output":
+				if _, err := ss.ch.Write(frame.Data); err != nil {
+					return
+				}
+			case "stderr":
+				if _, err := ss.ch.Stderr().Write(frame.Data); err != nil {
+					return
+				}
+			case "exit":
+				_, _ = ss.ch.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{uint32(frame.ExitCode)}))
+				return
+			default:
+				return
+			}
+		}
+	}()
 }
 
 // childArgv builds the (optionally init-wrapped) login-shell argv.

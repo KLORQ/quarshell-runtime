@@ -166,7 +166,7 @@ func TestLifecycleControlRequiresClaimsForVMIdentity(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	path := filepath.Join(dir, "control.sock")
-	identity := "spiffe://cautem.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
+	identity := "spiffe://quarshell.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
 	server, err := startLifecycleControl(context.Background(), Config{
 		SupervisorControlSocket:           path,
 		SupervisorControlTLSConfig:        &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{serverCert}, ClientAuth: tls.RequireAndVerifyClientCert, ClientCAs: clientCAs},

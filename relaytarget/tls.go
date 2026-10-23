@@ -13,17 +13,17 @@ import (
 const (
 	// EnvEndpoint is set in the trusted companion Pod and points at the
 	// workload's per-sandbox boundary Service.
-	EnvEndpoint = "CAUTEM_RELAY_TARGET_ENDPOINT"
+	EnvEndpoint = "QUARSHELL_RELAY_TARGET_ENDPOINT"
 	// EnvListen and the server identity are set only in the workload supervisor.
-	EnvListen     = "CAUTEM_RELAY_TARGET_LISTEN"
-	EnvClientCA   = "CAUTEM_RELAY_TARGET_CLIENT_CA"
-	EnvServerCert = "CAUTEM_RELAY_TARGET_SERVER_CERT"
-	EnvServerKey  = "CAUTEM_RELAY_TARGET_SERVER_KEY"
-	EnvSSHSock    = "CAUTEM_RELAY_TARGET_SSH_SOCKET"
+	EnvListen     = "QUARSHELL_RELAY_TARGET_LISTEN"
+	EnvClientCA   = "QUARSHELL_RELAY_TARGET_CLIENT_CA"
+	EnvServerCert = "QUARSHELL_RELAY_TARGET_SERVER_CERT"
+	EnvServerKey  = "QUARSHELL_RELAY_TARGET_SERVER_KEY"
+	EnvSSHSock    = "QUARSHELL_RELAY_TARGET_SSH_SOCKET"
 	// Client identity and server trust are set only in the trusted companion.
-	EnvServerCA   = "CAUTEM_RELAY_TARGET_SERVER_CA"
-	EnvClientCert = "CAUTEM_RELAY_TARGET_CLIENT_CERT"
-	EnvClientKey  = "CAUTEM_RELAY_TARGET_CLIENT_KEY"
+	EnvServerCA   = "QUARSHELL_RELAY_TARGET_SERVER_CA"
+	EnvClientCert = "QUARSHELL_RELAY_TARGET_CLIENT_CERT"
+	EnvClientKey  = "QUARSHELL_RELAY_TARGET_CLIENT_KEY"
 )
 
 // ServerTLSConfigFromEnvironment loads the workload-side mTLS identity and

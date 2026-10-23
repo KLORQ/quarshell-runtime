@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Sandbox glue & images</strong><br>
-  Lifecycle helpers, harden, secrets store, cautem-init, and GHCR sandbox images.
+  Lifecycle helpers, harden, secrets store, quarshell-init, and GHCR sandbox images.
 </p>
 <p align="center">
   <a href="https://github.com/KLORQ/quarshell-runtime/actions/workflows/ci.yml"><img src="https://github.com/KLORQ/quarshell-runtime/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -13,7 +13,7 @@
   <a href="https://github.com/KLORQ/quarshell-runtime/actions/workflows/images-sandbox.yml"><img src="https://github.com/KLORQ/quarshell-runtime/actions/workflows/images-sandbox.yml/badge.svg" alt="images-sandbox"></a>
 </p>
 <p align="center">
-  <sub>Part of the <a href="https://github.com/KLORQ">cautem / cautem</a> ecosystem</sub>
+  <sub>Part of the <a href="https://github.com/KLORQ">quarshell / quarshell</a> ecosystem</sub>
 </p>
 
 ---
@@ -22,15 +22,15 @@
 
 See the [architecture](https://klorq.github.io/sandbox.dev/concepts/architecture/) and [security](https://klorq.github.io/sandbox.dev/concepts/security/) pages for the sandbox process and its trust boundaries.
 
-**quarshell-runtime** ties sandbox creation together: guest init (`cautem-init`), Landlock/seccomp harden, secrets store, inference snippets, and the Debian-based sandbox image flavors published to GHCR.
+**quarshell-runtime** ties sandbox creation together: guest init (`quarshell-init`), Landlock/seccomp harden, secrets store, inference snippets, and the Debian-based sandbox image flavors published to GHCR.
 
 ### Key Features
 
 | Category | Capabilities |
 |----------|--------------|
-| **Images** | `sandboxes/{base,gui,gpu,gui-gpu}` on `ghcr.io/cautem/cautem` |
-| **Init** | `cautem-init` — Landlock, seccomp, workspace mount |
-| **Supervisor** | `cautem-supervisor` — PID 1 workload lifecycle and sandbox-side loopback dial socket for `ForwardTcp` |
+| **Images** | `sandboxes/{base,gui,gpu,gui-gpu}` on `ghcr.io/quarshell/quarshell` |
+| **Init** | `quarshell-init` — Landlock, seccomp, workspace mount |
+| **Supervisor** | `quarshell-supervisor` — PID 1 workload lifecycle and sandbox-side loopback dial socket for `ForwardTcp` |
 | **Relay** | `relaytarget` — validates and dials loopback TCP targets inside the sandbox network namespace over the private shared Unix socket |
 | **Secrets** | Host-side store resolved into guest placeholders |
 | **Harden** | Linux sandbox hardening helpers |
@@ -45,15 +45,15 @@ Build from this checkout in the sibling `go.work` workspace. The published alpha
 **Images (after CI publish):**
 
 ```text
-ghcr.io/cautem/cautem/sandboxes/base:latest
-ghcr.io/cautem/cautem/sandboxes/gui:latest
-ghcr.io/cautem/cautem/sandboxes/gpu:latest
-ghcr.io/cautem/cautem/sandboxes/gui-gpu:latest # experimental GUI+GPU; hardware acceleration unverified
+ghcr.io/quarshell/quarshell/sandboxes/base:latest
+ghcr.io/quarshell/quarshell/sandboxes/gui:latest
+ghcr.io/quarshell/quarshell/sandboxes/gpu:latest
+ghcr.io/quarshell/quarshell/sandboxes/gui-gpu:latest # experimental GUI+GPU; hardware acceleration unverified
 ```
 
 **Requirements:** Go 1.27+
 
-Sandbox images declare `USER sandbox` and give that account writable ownership of `/sandbox`, `/workspace`, and `/cautem/data`. Docker/Podman start the hardened supervisor as root while passing the inspected image's OCI `Config.User` to the workload identity resolver; explicit OpenShell policy fields take precedence. Custom images that omit OCI `USER` must specify both process identity fields in policy or use a backend that provides resolved `OPENSHELL_SANDBOX_UID` / `OPENSHELL_SANDBOX_GID` values.
+Sandbox images declare `USER sandbox` and give that account writable ownership of `/sandbox`, `/workspace`, and `/quarshell/data`. Docker/Podman start the hardened supervisor as root while passing the inspected image's OCI `Config.User` to the workload identity resolver; explicit OpenShell policy fields take precedence. Custom images that omit OCI `USER` must specify both process identity fields in policy or use a backend that provides resolved `OPENSHELL_SANDBOX_UID` / `OPENSHELL_SANDBOX_GID` values.
 
 ---
 
@@ -62,11 +62,11 @@ Sandbox images declare `USER sandbox` and give that account writable ownership o
 ```bash
 # build guest init into the image context (as CI does)
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -o images/sandbox/cautem-init ./cmd/cautem-init
+  go build -o images/sandbox/quarshell-init ./cmd/quarshell-init
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -o images/sandbox/cautem-supervisor ./cmd/cautem-supervisor
+  go build -o images/sandbox/quarshell-supervisor ./cmd/quarshell-supervisor
 
-docker build -t cautem-sandbox:local --target cli -f images/sandbox/Dockerfile images/sandbox
+docker build -t quarshell-sandbox:local --target cli -f images/sandbox/Dockerfile images/sandbox
 ```
 
 ---
@@ -75,8 +75,8 @@ docker build -t cautem-sandbox:local --target cli -f images/sandbox/Dockerfile i
 
 | Path | Purpose |
 |------|---------|
-| `cmd/cautem-init` | Guest entrypoint |
-| `cmd/cautem-supervisor` | PID 1 workload supervisor for local and remote control transports |
+| `cmd/quarshell-init` | Guest entrypoint |
+| `cmd/quarshell-supervisor` | PID 1 workload supervisor for local and remote control transports |
 | `sandbox/` | Lifecycle helpers |
 | `harden/` | Landlock / seccomp |
 | `secrets/` | Secret store |
@@ -98,4 +98,4 @@ docker build -t cautem-sandbox:local --target cli -f images/sandbox/Dockerfile i
 
 ## License
 
-[Apache-2.0](./LICENSE) © cautem
+[Apache-2.0](./LICENSE) © quarshell

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func TestLandlockCompatibilityModesWhenUnavailable(t *testing.T) {

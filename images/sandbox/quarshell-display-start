@@ -2,11 +2,11 @@
 # Start Xvfb + openbox + x11vnc + websockify/noVNC (loopback inside container).
 set -eu
 DISPLAY="${DISPLAY:-:99}"
-PASS="${CAUTEM_VNC_PASSWORD:-cautem}"
-GEOM="${CAUTEM_DISPLAY_GEOM:-1280x800x24}"
+PASS="${QUARSHELL_VNC_PASSWORD:-quarshell}"
+GEOM="${QUARSHELL_DISPLAY_GEOM:-1280x800x24}"
 NOVNC_WEB="${NOVNC_WEB:-/usr/share/novnc}"
-RFB_PORT="${CAUTEM_VNC_PORT:-5900}"
-HTTP_PORT="${CAUTEM_NOVNC_PORT:-6080}"
+RFB_PORT="${QUARSHELL_VNC_PORT:-5900}"
+HTTP_PORT="${QUARSHELL_NOVNC_PORT:-6080}"
 
 mkdir -p /tmp/.X11-unix /tmp/quarshell-display /var/run/osg
 chmod 1777 /tmp/.X11-unix
@@ -17,7 +17,7 @@ printf '%s\n' "$PASS" >"$PASSFILE"
 chmod 600 "$PASSFILE"
 
 if ! command -v Xvfb >/dev/null; then
-  echo "quarshell-display: Xvfb not installed (use cautem-sandbox:gui image)" >&2
+  echo "quarshell-display: Xvfb not installed (use quarshell-sandbox:gui image)" >&2
   exit 1
 fi
 

@@ -99,12 +99,12 @@ func TestCallHonorsDeadline(t *testing.T) {
 }
 
 func TestPeerGuardBindsClaimsAndRejectsReplay(t *testing.T) {
-	identity := "spiffe://cautem.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
+	identity := "spiffe://quarshell.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
 	parsed, err := ParseVMIdentity(identity)
 	if err != nil || parsed.SessionID != "11234567-89ab-cdef-0123-456789abcdef" {
 		t.Fatalf("ParseVMIdentity() = (%+v, %v), want session-bound identity", parsed, err)
 	}
-	legacyIdentity := "spiffe://cautem.vm/sandbox/sandbox-a/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
+	legacyIdentity := "spiffe://quarshell.vm/sandbox/sandbox-a/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef"
 	if _, err := ParseVMIdentity(legacyIdentity); err == nil {
 		t.Fatal("legacy identity without session was accepted")
 	}
@@ -158,7 +158,7 @@ func TestPeerGuardBindsClaimsAndRejectsReplay(t *testing.T) {
 }
 
 func TestParseVMIdentityAcceptsOpenShellRuntimeGeneration(t *testing.T) {
-	identity := "spiffe://cautem.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/g0000000000000001"
+	identity := "spiffe://quarshell.vm/sandbox/sandbox-a/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/g0000000000000001"
 	parsed, err := ParseVMIdentity(identity)
 	if err != nil || parsed.Generation != "g0000000000000001" {
 		t.Fatalf("ParseVMIdentity() = (%+v, %v), want OpenShell generation", parsed, err)

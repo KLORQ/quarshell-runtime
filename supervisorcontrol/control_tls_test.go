@@ -67,7 +67,7 @@ func TestMutuallyAuthenticatedControlTLSOverUnix(t *testing.T) {
 	clientCert := newTestCertificate(t, caCert, caKey, false)
 	roots := x509.NewCertPool()
 	roots.AddCert(caCert)
-	clientIdentity, _ := url.Parse("spiffe://cautem.vm/sandbox/demo/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef")
+	clientIdentity, _ := url.Parse("spiffe://quarshell.vm/sandbox/demo/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef")
 	serverConfig := func(expected string) *tls.Config {
 		return &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{serverCert}, ClientAuth: tls.RequireAndVerifyClientCert, ClientCAs: roots,
 			VerifyConnection: func(state tls.ConnectionState) error {
@@ -81,7 +81,7 @@ func TestMutuallyAuthenticatedControlTLSOverUnix(t *testing.T) {
 		}
 	}
 	path := testSocketPath(t)
-	badServer, err := StartTLSUnix(context.Background(), path+"-bad", serverConfig("spiffe://cautem.vm/sandbox/other"), func(context.Context, Request) Response { return Response{InstanceID: "wrong"} })
+	badServer, err := StartTLSUnix(context.Background(), path+"-bad", serverConfig("spiffe://quarshell.vm/sandbox/other"), func(context.Context, Request) Response { return Response{InstanceID: "wrong"} })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func newTestCertificate(t *testing.T, ca *x509.Certificate, caKey *ecdsa.Private
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	}
 	if !server {
-		uri, _ := url.Parse("spiffe://cautem.vm/sandbox/demo/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef")
+		uri, _ := url.Parse("spiffe://quarshell.vm/sandbox/demo/session/11234567-89ab-cdef-0123-456789abcdef/rootfs/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/runtime/sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/generation/0123456789abcdef0123456789abcdef")
 		template.URIs = []*url.URL{uri}
 	}
 	der, err := x509.CreateCertificate(rand.Reader, template, ca, &key.PublicKey, caKey)

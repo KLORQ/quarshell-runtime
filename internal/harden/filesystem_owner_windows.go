@@ -1,6 +1,6 @@
 package harden
 
-import "github.com/KLORQ/quarshell-core/policy"
+import "github.com/KLORQ/quarshell-policy/corepolicy"
 
 type filesystemPathOwner struct{}
 

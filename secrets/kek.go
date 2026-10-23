@@ -13,7 +13,7 @@ import (
 
 // Well-known secrets paths / env (single source of truth — do not hardcode elsewhere).
 const (
-	EnvKEK    = "CAUTEM_SECRETS_KEK"
+	EnvKEK    = "QUARSHELL_SECRETS_KEK"
 	FileKEK   = "secrets.kek"
 	FileStore = "secrets.enc.json"
 	kekBytes  = 32
@@ -29,7 +29,7 @@ const (
 )
 
 // Status describes KEK durability for doctor /gateway info.
-// Pinned is true when CAUTEM_SECRETS_KEK is set (survives empty data-dir recreate
+// Pinned is true when QUARSHELL_SECRETS_KEK is set (survives empty data-dir recreate
 // as long as the same env is supplied). File-backed KEK survives volume recreate
 // but is lost if the volume is deleted without a pinned env.
 type Status struct {

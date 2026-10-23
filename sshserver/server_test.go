@@ -4,6 +4,9 @@ package sshserver
 
 import (
 	"bytes"
+	"context"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -20,7 +23,7 @@ import (
 func startServer(t *testing.T, cfg Config) (*ssh.Client, string) {
 	t.Helper()
 	if cfg.InitPath == "" {
-		cfg.InitPath = filepath.Join(t.TempDir(), "cautem-init")
+		cfg.InitPath = filepath.Join(t.TempDir(), "quarshell-init")
 		if err := os.WriteFile(cfg.InitPath, []byte("#!/bin/sh\n[ \"$1\" = \"--\" ] || exit 99\nshift\nexec \"$@\"\n"), 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -59,6 +62,115 @@ func startServer(t *testing.T, cfg Config) (*ssh.Client, string) {
 	client := ssh.NewClient(cc, chans, reqs)
 	t.Cleanup(func() { _ = client.Close() })
 	return client, sock
+}
+
+func TestOpenShellMainSubsystemBridgesCanonicalProcessStreams(t *testing.T) {
+	var guest net.Conn
+	client, _ := startServer(t, Config{AttachMainProcess: func(context.Context) (net.Conn, error) {
+		var server net.Conn
+		guest, server = net.Pipe()
+		go func() {
+			defer server.Close()
+			var gotInput string
+			for {
+				payload, err := readSubsystemFrame(server)
+				if err != nil {
+					return
+				}
+				var frame mainProcessFrame
+				if json.Unmarshal(payload, &frame) != nil {
+					return
+				}
+				if frame.Type == "stdin" {
+					gotInput += string(frame.Data)
+				}
+				if frame.Type == "eof" {
+					break
+				}
+			}
+			if gotInput != "hello" {
+				return
+			}
+			for _, frame := range []mainProcessFrame{
+				{Type: "stdout", Data: []byte("out")},
+				{Type: "stderr", Data: []byte("err")},
+				{Type: "exit", ExitCode: 7},
+			} {
+				encoded, _ := json.Marshal(frame)
+				if writeSubsystemFrame(server, encoded) != nil {
+					return
+				}
+			}
+		}()
+		return guest, nil
+	}})
+	channel, requests, err := client.OpenChannel("session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer channel.Close()
+	status := make(chan uint32, 1)
+	go func() {
+		for request := range requests {
+			if request.Type == "exit-status" {
+				var result struct{ Status uint32 }
+				if ssh.Unmarshal(request.Payload, &result) == nil {
+					status <- result.Status
+				}
+			}
+		}
+	}()
+	accepted, err := channel.SendRequest("subsystem", true, ssh.Marshal(struct{ Name string }{"openshell-main"}))
+	if err != nil || !accepted {
+		t.Fatalf("request openshell-main subsystem accepted=%t err=%v", accepted, err)
+	}
+	if _, err := io.WriteString(channel, "hello"); err != nil {
+		t.Fatal(err)
+	}
+	if err := channel.CloseWrite(); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	readDone := make(chan error, 1)
+	go func() { _, err := io.Copy(&stdout, channel); readDone <- err }()
+	if _, err := io.Copy(&stderr, channel.Stderr()); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-readDone; err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case code := <-status:
+		if code != 7 {
+			t.Fatalf("subsystem exit status=%d, want 7", code)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("subsystem exit status was not sent")
+	}
+	if stdout.String() != "out" || stderr.String() != "err" {
+		t.Fatalf("subsystem output stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
+
+func writeSubsystemFrame(writer io.Writer, payload []byte) error {
+	var header [4]byte
+	binary.BigEndian.PutUint32(header[:], uint32(len(payload)))
+	if _, err := writer.Write(header[:]); err != nil {
+		return err
+	}
+	_, err := writer.Write(payload)
+	return err
+}
+
+func readSubsystemFrame(reader io.Reader) ([]byte, error) {
+	var header [4]byte
+	if _, err := io.ReadFull(reader, header[:]); err != nil {
+		return nil, err
+	}
+	size := binary.BigEndian.Uint32(header[:])
+	payload := make([]byte, size)
+	_, err := io.ReadFull(reader, payload)
+	return payload, err
 }
 
 func TestListenUnixPermissions(t *testing.T) {
@@ -280,7 +392,7 @@ func TestUnknownChannelRefused(t *testing.T) {
 
 func TestChildrenWrappedByInit(t *testing.T) {
 	dir := t.TempDir()
-	initPath := filepath.Join(dir, "cautem-init")
+	initPath := filepath.Join(dir, "quarshell-init")
 	script := "#!/bin/sh\n[ \"$1\" = \"--\" ] || exit 99\nshift\necho wrapped\nexec \"$@\"\n"
 	if err := os.WriteFile(initPath, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
@@ -300,7 +412,7 @@ func TestChildrenWrappedByInit(t *testing.T) {
 }
 
 func TestChildArgv(t *testing.T) {
-	initPath := filepath.Join(t.TempDir(), "cautem-init")
+	initPath := filepath.Join(t.TempDir(), "quarshell-init")
 	if err := os.WriteFile(initPath, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}

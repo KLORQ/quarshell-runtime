@@ -3,7 +3,7 @@
 ## Scope
 
 This repository contains sandbox process glue, hardening helpers, secrets
-storage, `cautem-init`, and sandbox image sources.
+storage, `quarshell-init`, and sandbox image sources.
 
 ## Working rules
 

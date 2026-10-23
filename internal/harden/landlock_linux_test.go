@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func TestLandlockDefaultRuntimeBaseline(t *testing.T) {
-	const childEnv = "CAUTEM_LANDLOCK_DEFAULT_BASELINE_CHILD"
+	const childEnv = "QUARSHELL_LANDLOCK_DEFAULT_BASELINE_CHILD"
 	if os.Getenv(childEnv) == "1" {
 		if err := applyLandlock(policy.Document{}); err != nil {
 			t.Fatal(err)
 		}
-		probe := filepath.Join(os.TempDir(), "cautem-landlock-default-baseline")
+		probe := filepath.Join(os.TempDir(), "quarshell-landlock-default-baseline")
 		defer os.Remove(probe)
 		cmd := exec.Command("/bin/sh", "-c", `printf baseline > "$1" && test -r /proc/self/cmdline`, "sh", probe)
 		if output, err := cmd.CombinedOutput(); err != nil {
@@ -38,10 +38,10 @@ func TestLandlockDefaultRuntimeBaseline(t *testing.T) {
 }
 
 func TestPrivateCredentialDirectoryLandlockEnforcement(t *testing.T) {
-	const childEnv = "CAUTEM_LANDLOCK_PRIVATE_CREDENTIAL_CHILD"
+	const childEnv = "QUARSHELL_LANDLOCK_PRIVATE_CREDENTIAL_CHILD"
 	if os.Getenv(childEnv) == "1" {
-		privateDir := os.Getenv("CAUTEM_LANDLOCK_PRIVATE_CREDENTIAL_DIR")
-		secretPath := os.Getenv("CAUTEM_LANDLOCK_PRIVATE_CREDENTIAL_FILE")
+		privateDir := os.Getenv("QUARSHELL_LANDLOCK_PRIVATE_CREDENTIAL_DIR")
+		secretPath := os.Getenv("QUARSHELL_LANDLOCK_PRIVATE_CREDENTIAL_FILE")
 		result, err := Apply(t.Context(), Options{
 			Doc:                  policy.Document{FilesystemPolicy: &policy.FilesystemPolicy{}},
 			Mode:                 ModeRequired,
@@ -69,7 +69,7 @@ func TestPrivateCredentialDirectoryLandlockEnforcement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	privateDir, err := os.MkdirTemp(home, ".cautem-private-control-")
+	privateDir, err := os.MkdirTemp(home, ".quarshell-private-control-")
 	if err != nil {
 		t.Skipf("create private credential directory under home: %v", err)
 	}
@@ -81,8 +81,8 @@ func TestPrivateCredentialDirectoryLandlockEnforcement(t *testing.T) {
 	cmd := exec.Command(os.Args[0], "-test.run=^TestPrivateCredentialDirectoryLandlockEnforcement$")
 	cmd.Env = landlockChildEnv(
 		childEnv+"=1",
-		"CAUTEM_LANDLOCK_PRIVATE_CREDENTIAL_DIR="+privateDir,
-		"CAUTEM_LANDLOCK_PRIVATE_CREDENTIAL_FILE="+secretPath,
+		"QUARSHELL_LANDLOCK_PRIVATE_CREDENTIAL_DIR="+privateDir,
+		"QUARSHELL_LANDLOCK_PRIVATE_CREDENTIAL_FILE="+secretPath,
 	)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("private credential Landlock child failed: %v\n%s", err, output)
@@ -90,10 +90,10 @@ func TestPrivateCredentialDirectoryLandlockEnforcement(t *testing.T) {
 }
 
 func TestLandlockExplicitPolicyEnforcement(t *testing.T) {
-	const childEnv = "CAUTEM_LANDLOCK_TEST_CHILD"
+	const childEnv = "QUARSHELL_LANDLOCK_TEST_CHILD"
 	if os.Getenv(childEnv) == "1" {
-		allowed := os.Getenv("CAUTEM_LANDLOCK_TEST_ALLOWED")
-		coverageDir := os.Getenv("CAUTEM_LANDLOCK_TEST_COVERAGE_DIR")
+		allowed := os.Getenv("QUARSHELL_LANDLOCK_TEST_ALLOWED")
+		coverageDir := os.Getenv("QUARSHELL_LANDLOCK_TEST_COVERAGE_DIR")
 		doc := policy.Document{FilesystemPolicy: &policy.FilesystemPolicy{
 			ReadOnly:          []string{filepath.Dir(allowed)},
 			ReadWrite:         []string{coverageDir},
@@ -123,17 +123,17 @@ func TestLandlockExplicitPolicyEnforcement(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(os.Args[0], landlockChildArgs("TestLandlockExplicitPolicyEnforcement", coverageDir)...)
-	cmd.Env = landlockChildEnv(childEnv+"=1", "CAUTEM_LANDLOCK_TEST_ALLOWED="+allowed, "CAUTEM_LANDLOCK_TEST_COVERAGE_DIR="+coverageDir)
+	cmd.Env = landlockChildEnv(childEnv+"=1", "QUARSHELL_LANDLOCK_TEST_ALLOWED="+allowed, "QUARSHELL_LANDLOCK_TEST_COVERAGE_DIR="+coverageDir)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Landlock child failed: %v\n%s", err, output)
 	}
 }
 
 func TestLandlockFilesystemWriteGrantsEnforcement(t *testing.T) {
-	const childEnv = "CAUTEM_LANDLOCK_WRITE_TEST_CHILD"
+	const childEnv = "QUARSHELL_LANDLOCK_WRITE_TEST_CHILD"
 	if os.Getenv(childEnv) == "1" {
-		mode := os.Getenv("CAUTEM_LANDLOCK_WRITE_TEST_MODE")
-		root := os.Getenv("CAUTEM_LANDLOCK_WRITE_TEST_ROOT")
+		mode := os.Getenv("QUARSHELL_LANDLOCK_WRITE_TEST_MODE")
+		root := os.Getenv("QUARSHELL_LANDLOCK_WRITE_TEST_ROOT")
 		workdir := filepath.Join(root, "work")
 		outside := filepath.Join(root, "outside")
 		var doc policy.Document
@@ -176,7 +176,7 @@ func TestLandlockFilesystemWriteGrantsEnforcement(t *testing.T) {
 			}
 			coverageDir := filepath.Join(root, "work")
 			cmd := exec.Command(os.Args[0], landlockChildArgs("TestLandlockFilesystemWriteGrantsEnforcement", coverageDir)...)
-			cmd.Env = landlockChildEnv(childEnv+"=1", "CAUTEM_LANDLOCK_WRITE_TEST_MODE="+mode, "CAUTEM_LANDLOCK_WRITE_TEST_ROOT="+root)
+			cmd.Env = landlockChildEnv(childEnv+"=1", "QUARSHELL_LANDLOCK_WRITE_TEST_MODE="+mode, "QUARSHELL_LANDLOCK_WRITE_TEST_ROOT="+root)
 			if output, err := cmd.CombinedOutput(); err != nil {
 				t.Fatalf("Landlock %s child failed: %v\n%s", mode, err, output)
 			}

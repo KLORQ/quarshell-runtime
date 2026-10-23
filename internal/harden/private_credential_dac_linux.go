@@ -6,7 +6,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func privateCredentialDirOwnedByCurrentUser(info os.FileInfo) bool {

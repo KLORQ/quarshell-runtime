@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func TestPrepareReadWritePathsRejectsSymlink(t *testing.T) {
@@ -126,7 +126,7 @@ func TestPrivateCredentialDirectoryUsesDACAfterGuaranteedIdentityDrop(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	privateDir, err := os.MkdirTemp(home, ".cautem-control-")
+	privateDir, err := os.MkdirTemp(home, ".quarshell-control-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestPrivateCredentialDirectoryUsesDACAfterGuaranteedIdentityDrop(t *testing
 }
 
 func TestPrivateCredentialDirectoryRejectsRuntimeTemporaryGrant(t *testing.T) {
-	privateDir, err := os.MkdirTemp("/tmp", "cautem-private-control-")
+	privateDir, err := os.MkdirTemp("/tmp", "quarshell-private-control-")
 	if err != nil {
 		t.Skipf("create temporary private directory under /tmp: %v", err)
 	}

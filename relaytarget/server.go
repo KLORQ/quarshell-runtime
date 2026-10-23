@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/KLORQ/quarshell-core/relayproto"
-	"github.com/KLORQ/quarshell-slogx"
+	"github.com/KLORQ/quarshell-core/slogx"
 )
 
 const maxTargetLine = 4096

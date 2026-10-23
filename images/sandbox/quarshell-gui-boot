@@ -1,5 +1,5 @@
 #!/bin/sh
-# Guest PID1 helper (after cautem-init): optional noVNC stack, then sleep.
+# Guest PID1 helper (after quarshell-init): optional noVNC stack, then sleep.
 set -eu
 if [ "${DISPLAY_MODE:-none}" = "novnc" ]; then
   /usr/local/bin/quarshell-display-start

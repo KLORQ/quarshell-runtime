@@ -2,12 +2,11 @@ module github.com/KLORQ/quarshell-runtime
 
 go 1.27.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
-	github.com/KLORQ/quarshell-core v0.4.2
-	github.com/KLORQ/quarshell-proto v0.2.2
-	github.com/KLORQ/quarshell-slogx v0.1.5
+	github.com/KLORQ/quarshell-core v0.5.0
+	github.com/KLORQ/quarshell-proto v0.2.3
 	github.com/landlock-lsm/go-landlock v0.10.1
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.47.0

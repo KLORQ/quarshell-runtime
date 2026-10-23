@@ -36,7 +36,7 @@ type diskBlob struct {
 }
 
 // OpenLocal opens or creates an encrypted store under dir.
-// KEK comes from CAUTEM_SECRETS_KEK (raw, hex, or base64) or a generated secrets.kek file.
+// KEK comes from QUARSHELL_SECRETS_KEK (raw, hex, or base64) or a generated secrets.kek file.
 func OpenLocal(dir string) (*LocalEncrypted, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err

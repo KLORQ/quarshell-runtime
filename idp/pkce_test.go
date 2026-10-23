@@ -37,7 +37,7 @@ func TestPrepareAndExchangeAuthorizationCode(t *testing.T) {
 	t.Cleanup(server.Close)
 	issuer = server.URL
 
-	cfg := idp.PKCEConfig{Issuer: issuer, ClientID: "console", Audience: "cautem", Scopes: "profile openid", AllowInsecureHTTP: true, HTTPClient: server.Client()}
+	cfg := idp.PKCEConfig{Issuer: issuer, ClientID: "console", Audience: "quarshell", Scopes: "profile openid", AllowInsecureHTTP: true, HTTPClient: server.Client()}
 	prepared, err := idp.PrepareAuthorization(context.Background(), cfg, "http://127.0.0.1:8080/auth/callback")
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestPrepareAndExchangeAuthorizationCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	query := authorize.Query()
-	if query.Get("state") != prepared.State || query.Get("code_challenge_method") != "S256" || query.Get("audience") != "cautem" {
+	if query.Get("state") != prepared.State || query.Get("code_challenge_method") != "S256" || query.Get("audience") != "quarshell" {
 		t.Fatalf("unexpected authorization query: %v", query)
 	}
 	digest := sha256.Sum256([]byte(prepared.Verifier))

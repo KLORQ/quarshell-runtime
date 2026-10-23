@@ -7,11 +7,11 @@ import (
 )
 
 func TestParseArgsAllowsTrustedInitOverride(t *testing.T) {
-	options, err := parseArgs([]string{"--init", "/.openshell/runtime/cautem-init", "--workdir", "/sandbox"})
+	options, err := parseArgs([]string{"--init", "/.openshell/runtime/quarshell-init", "--workdir", "/sandbox"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if options.server.InitPath != "/.openshell/runtime/cautem-init" || options.server.WorkDir != "/sandbox" || options.socket != defaults.GuestSSHSocket {
+	if options.server.InitPath != "/.openshell/runtime/quarshell-init" || options.server.WorkDir != "/sandbox" || options.socket != defaults.GuestSSHSocket {
 		t.Fatalf("parsed sshd options = %#v", options)
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 // Mode controls fail-closed vs loud best-effort.
@@ -97,13 +97,13 @@ func Apply(_ context.Context, opts Options) (Result, error) {
 	if !opts.NoDrop && shouldDrop(opts.Doc) {
 		if err := dropPrivileges(opts.Doc); err != nil {
 			res.DropError = err.Error()
-			msg := fmt.Sprintf("cautem-init: privilege drop failed: %v", err)
+			msg := fmt.Sprintf("quarshell-init: privilege drop failed: %v", err)
 			fmt.Fprintln(opts.Log, msg+" (refusing to launch with the wrong process identity)")
 			return res, fmt.Errorf("harden: drop: %w", err)
 		}
 		res.DropApplied = true
-		if os.Getenv("CAUTEM_HARDEN_VERBOSE") == "1" {
-			fmt.Fprintln(opts.Log, "cautem-init: privileges dropped")
+		if os.Getenv("QUARSHELL_HARDEN_VERBOSE") == "1" {
+			fmt.Fprintln(opts.Log, "quarshell-init: privileges dropped")
 		}
 	}
 	if noFS {
@@ -115,10 +115,10 @@ func Apply(_ context.Context, opts Options) (Result, error) {
 	res.LandlockFilesystemRulesAvailable = abi >= 1
 	res.LandlockDeniedAccessAuditAvailable = abi >= 7
 	res.LandlockProfileMaxABI = landlockProfileMaxABI(abi)
-	verbose := os.Getenv("CAUTEM_HARDEN_VERBOSE") == "1"
+	verbose := os.Getenv("QUARSHELL_HARDEN_VERBOSE") == "1"
 	if err != nil {
 		res.LandlockError = err.Error()
-		msg := fmt.Sprintf("cautem-init: landlock unavailable: %v", err)
+		msg := fmt.Sprintf("quarshell-init: landlock unavailable: %v", err)
 		if opts.Mode == ModeRequired {
 			fmt.Fprintln(opts.Log, msg+" (mode=required → fail)")
 			return res, fmt.Errorf("harden: landlock required: %w", err)
@@ -127,7 +127,7 @@ func Apply(_ context.Context, opts Options) (Result, error) {
 	} else {
 		if err := applyLandlockWithMode(opts.Doc, abi, opts.Mode); err != nil {
 			res.LandlockError = err.Error()
-			msg := fmt.Sprintf("cautem-init: landlock apply failed: %v", err)
+			msg := fmt.Sprintf("quarshell-init: landlock apply failed: %v", err)
 			if opts.Mode == ModeRequired {
 				fmt.Fprintln(opts.Log, msg+" (mode=required → fail)")
 				return res, fmt.Errorf("harden: landlock: %w", err)
@@ -137,7 +137,7 @@ func Apply(_ context.Context, opts Options) (Result, error) {
 			res.LandlockApplied = true
 			res.LandlockDeniedAccessAuditEnabled = abi >= 7
 			if verbose {
-				fmt.Fprintf(opts.Log, "cautem-init: landlock applied (kernel abi=%d, profile up to v%d, denied-access audit=%t)\n", abi, res.LandlockProfileMaxABI, res.LandlockDeniedAccessAuditEnabled)
+				fmt.Fprintf(opts.Log, "quarshell-init: landlock applied (kernel abi=%d, profile up to v%d, denied-access audit=%t)\n", abi, res.LandlockProfileMaxABI, res.LandlockDeniedAccessAuditEnabled)
 			}
 		}
 	}

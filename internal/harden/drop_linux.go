@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 	"golang.org/x/sys/unix"
 )
 

@@ -34,7 +34,7 @@ func loadGatewayVerificationKeys(path, gatewayID, privateDir string) (map[string
 		return nil, nil
 	}
 	if path == "" || gatewayID == "" || strings.TrimSpace(gatewayID) != gatewayID || strings.IndexFunc(gatewayID, unicode.IsSpace) >= 0 {
-		return nil, fmt.Errorf("Gateway identity and verification keys must be configured together")
+		return nil, fmt.Errorf("gateway identity and verification keys must be configured together")
 	}
 	if privateDir == "" || !filepath.IsAbs(privateDir) || filepath.Clean(privateDir) != privateDir {
 		return nil, fmt.Errorf("verification keys require the private supervisor control directory")

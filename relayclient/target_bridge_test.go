@@ -42,7 +42,7 @@ func TestTargetBridgeMutualTLSRelaysLoopbackTCPAndSSH(t *testing.T) {
 	})
 
 	t.Run("SSH Unix socket", func(t *testing.T) {
-		sshDir, err := os.MkdirTemp("", "cautem-")
+		sshDir, err := os.MkdirTemp("", "quarshell-")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -72,7 +72,7 @@ func TestTargetBridgeMutualTLSRelaysLoopbackTCPAndSSH(t *testing.T) {
 
 func TestTargetBridgeRejectsUnauthenticatedClientAndNonLoopbackTarget(t *testing.T) {
 	serverTLS, clientTLS := targetBridgeTLSConfigs(t)
-	sshDir, err := os.MkdirTemp("", "cautem-")
+	sshDir, err := os.MkdirTemp("", "quarshell-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +247,7 @@ func echoConnections(listener net.Listener) {
 func assertEcho(t *testing.T, conn net.Conn) {
 	t.Helper()
 	_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
-	payload := []byte("cautem-bridge")
+	payload := []byte("quarshell-bridge")
 	if _, err := conn.Write(payload); err != nil {
 		t.Fatal(err)
 	}

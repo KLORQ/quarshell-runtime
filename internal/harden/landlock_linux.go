@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 	ll "github.com/landlock-lsm/go-landlock/landlock"
 	"golang.org/x/sys/unix"
 )

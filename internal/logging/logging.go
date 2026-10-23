@@ -1,4 +1,4 @@
-// Package logging configures structured process logs for cautem binaries via slogx.
+// Package logging configures structured process logs for quarshell binaries via slogx.
 package logging
 
 import (
@@ -8,13 +8,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KLORQ/quarshell-slogx"
+	"github.com/KLORQ/quarshell-core/slogx"
 )
 
 // Env keys (optional).
 const (
-	EnvLogLevel  = "CAUTEM_LOG_LEVEL"  // trace|debug|info|warn|error|fatal
-	EnvLogFormat = "CAUTEM_LOG_FORMAT" // json|text
+	EnvLogLevel  = "QUARSHELL_LOG_LEVEL"  // trace|debug|info|warn|error|fatal
+	EnvLogFormat = "QUARSHELL_LOG_FORMAT" // json|text
 )
 
 // Options tweak Setup.

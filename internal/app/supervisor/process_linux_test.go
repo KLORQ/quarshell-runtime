@@ -28,14 +28,14 @@ func enableTestSubreaper(t *testing.T) {
 }
 
 const (
-	processEventHelperModeEnv  = "CAUTEM_TEST_PROCESS_HELPER_MODE"
-	processEventHelperPIDEnv   = "CAUTEM_TEST_PROCESS_HELPER_PID_FILE"
-	processEventHelperExitEnv  = "CAUTEM_TEST_PROCESS_HELPER_EXIT_FILE"
-	processEventHelperDelayEnv = "CAUTEM_TEST_PROCESS_HELPER_DELAY_MS"
+	processEventHelperModeEnv  = "QUARSHELL_TEST_PROCESS_HELPER_MODE"
+	processEventHelperPIDEnv   = "QUARSHELL_TEST_PROCESS_HELPER_PID_FILE"
+	processEventHelperExitEnv  = "QUARSHELL_TEST_PROCESS_HELPER_EXIT_FILE"
+	processEventHelperDelayEnv = "QUARSHELL_TEST_PROCESS_HELPER_DELAY_MS"
 )
 
 func TestProtectSupervisorMemoryDisablesPtraceDumpability(t *testing.T) {
-	const child = "CAUTEM_TEST_DUMPABLE_PROTECTION_CHILD"
+	const child = "QUARSHELL_TEST_DUMPABLE_PROTECTION_CHILD"
 	if os.Getenv(child) == "1" {
 		if err := protectSupervisorMemory(); err != nil {
 			t.Fatalf("protectSupervisorMemory() error = %v", err)
@@ -253,7 +253,7 @@ func TestRunCollectsCoalescedAdoptedChildExits(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close()
-	t.Setenv("CAUTEM_SUPERVISOR_CONTROL_SOCKET", socketPath)
+	t.Setenv("QUARSHELL_SUPERVISOR_CONTROL_SOCKET", socketPath)
 
 	const childCount = 4
 	pidFiles := make([]string, childCount)

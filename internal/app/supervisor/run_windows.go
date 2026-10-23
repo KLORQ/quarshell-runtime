@@ -21,7 +21,7 @@ func Run(args []string) (int, error) {
 		if errors.As(err, &exit) {
 			return exit.ExitCode(), nil
 		}
-		return 127, fmt.Errorf("cautem-supervisor: run workload: %w", err)
+		return 127, fmt.Errorf("quarshell-supervisor: run workload: %w", err)
 	}
 	return 0, nil
 }
@@ -30,10 +30,10 @@ func ParseArgs(args []string) ([]string, error) {
 	for i, arg := range args {
 		if arg == "--" {
 			if i+1 == len(args) {
-				return nil, fmt.Errorf("cautem-supervisor: command after -- is empty")
+				return nil, fmt.Errorf("quarshell-supervisor: command after -- is empty")
 			}
 			return args[i+1:], nil
 		}
 	}
-	return nil, fmt.Errorf("cautem-supervisor: expected -- before workload command")
+	return nil, fmt.Errorf("quarshell-supervisor: expected -- before workload command")
 }

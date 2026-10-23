@@ -61,8 +61,8 @@ func TestRunPublishesReadinessAfterStartingWorkloadAndDoesNotLeakMarkerPath(t *t
 	childOutput := filepath.Join(t.TempDir(), "child-env")
 	attemptsPath := filepath.Join(t.TempDir(), "attempts")
 	t.Setenv(envSupervisorReadyFile, readyPath)
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "on-failure")
-	command := `printf '%s' "${CAUTEM_VM_SUPERVISOR_READY_FILE-unset}" > "$1"; n=0; test ! -f "$2" || n=$(cat "$2"); n=$((n + 1)); printf '%s' "$n" > "$2"; test "$n" -ge 2`
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "on-failure")
+	command := `printf '%s' "${QUARSHELL_VM_SUPERVISOR_READY_FILE-unset}" > "$1"; n=0; test ! -f "$2" || n=$(cat "$2"); n=$((n + 1)); printf '%s' "$n" > "$2"; test "$n" -ge 2`
 	code, err := Run([]string{"sh", "-c", command, "sh", childOutput, attemptsPath})
 	if err != nil || code != 0 {
 		t.Fatalf("Run()=(%d,%v), want success after retry", code, err)
@@ -87,7 +87,7 @@ func TestRunPublishesReadinessAfterStartingWorkloadAndDoesNotLeakMarkerPath(t *t
 func TestRunWaitsForInitializerBeforePublishingReadiness(t *testing.T) {
 	readyPath := filepath.Join(t.TempDir(), "supervisor.ready")
 	t.Setenv(envSupervisorReadyFile, readyPath)
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "never")
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "never")
 	t.Setenv(waitForWorkloadReadyEnv, "1")
 	code, err := Run([]string{"sh", "-c", "exit 23"})
 	if err == nil || code != 125 || !strings.Contains(err.Error(), "exited before readiness") {
@@ -101,7 +101,7 @@ func TestRunWaitsForInitializerBeforePublishingReadiness(t *testing.T) {
 func TestRunPublishesReadinessAfterInitializerHandshake(t *testing.T) {
 	readyPath := filepath.Join(t.TempDir(), "supervisor.ready")
 	t.Setenv(envSupervisorReadyFile, readyPath)
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "never")
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "never")
 	t.Setenv(waitForWorkloadReadyEnv, "1")
 	code, err := Run([]string{"sh", "-c", "printf '1 1000 1000\\n' >&3"})
 	if err != nil || code != 0 {
@@ -161,7 +161,7 @@ func TestRunReportsAndFinalizesNaturalMainProcessExit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close()
-	t.Setenv("CAUTEM_SUPERVISOR_CONTROL_SOCKET", path)
+	t.Setenv("QUARSHELL_SUPERVISOR_CONTROL_SOCKET", path)
 	code, err := Run(workloadArgs(exitCommand(7)...))
 	if err != nil || code != 7 {
 		t.Fatalf("Run=(%d,%v), want (7,nil)", code, err)
@@ -208,8 +208,8 @@ func TestRunRestartsMainProcessOnFailureUntilItExitsSuccessfully(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close()
-	t.Setenv("CAUTEM_SUPERVISOR_CONTROL_SOCKET", controlPath)
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "on-failure")
+	t.Setenv("QUARSHELL_SUPERVISOR_CONTROL_SOCKET", controlPath)
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "on-failure")
 	command := fmt.Sprintf(`n=0; test ! -f %q || n=$(cat %q); n=$((n + 1)); printf '%%s' "$n" > %q; test "$n" -ge 3`, marker, marker, marker)
 	code, err := Run([]string{"sh", "-c", command})
 	if err != nil || code != 0 {
@@ -252,7 +252,7 @@ func TestRunRestartPolicyValidationAndFailureSemantics(t *testing.T) {
 }
 
 func TestRunForwardsTerminationSignal(t *testing.T) {
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "always")
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "always")
 	done := make(chan struct {
 		code int
 		err  error
@@ -279,7 +279,7 @@ func TestRunForwardsTerminationSignal(t *testing.T) {
 }
 
 func TestRunAlwaysRestartsSuccessfulExitAndStopsAfterSignal(t *testing.T) {
-	t.Setenv("CAUTEM_MAIN_PROCESS_RESTART_POLICY", "always")
+	t.Setenv("QUARSHELL_MAIN_PROCESS_RESTART_POLICY", "always")
 	marker := filepath.Join(t.TempDir(), "attempts")
 	command := fmt.Sprintf(`n=0; test ! -f %q || n=$(cat %q); n=$((n + 1)); printf '%%s' "$n" > %q; if test "$n" -lt 3; then exit 0; fi; sleep 30`, marker, marker, marker)
 	done := make(chan struct {

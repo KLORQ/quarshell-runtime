@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func TestPrepareReadWritePathsCreatesAndOwnsMissingDirectory(t *testing.T) {
@@ -100,7 +100,7 @@ func TestReconcileDataOwnershipRejectsSymlinkRoot(t *testing.T) {
 }
 
 func TestReconcilePersistentDataOwnershipIsOptIn(t *testing.T) {
-	t.Setenv("CAUTEM_RECONCILE_DATA_OWNERSHIP", "0")
+	t.Setenv("QUARSHELL_RECONCILE_DATA_OWNERSHIP", "0")
 	if err := reconcilePersistentDataOwnership(policy.Document{}); err != nil {
 		t.Fatalf("disabled reconciliation returned error: %v", err)
 	}

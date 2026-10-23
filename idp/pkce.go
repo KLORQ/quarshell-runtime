@@ -177,7 +177,7 @@ func BrowserPKCE(ctx context.Context, cfg PKCEConfig) (TokenBundle, error) {
 				ch <- result{err: fmt.Errorf("oidc: missing code")}
 				return
 			}
-			fmt.Fprint(w, "cautem OIDC login ok — you can close this tab")
+			fmt.Fprint(w, "quarshell OIDC login ok — you can close this tab")
 			ch <- result{code: code}
 		}),
 		ReadHeaderTimeout: callbackHeaderReadTimeout,

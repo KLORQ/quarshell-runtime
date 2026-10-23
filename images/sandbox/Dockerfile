@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Multi-target sandbox images (Debian bookworm).
-#   docker build --target cli -t cautem-sandbox:local .
-#   docker build --target gui -t cautem-sandbox:gui .
-#   docker build --target gpu -t cautem-sandbox:gpu .
-#   docker build --target gui-gpu -t cautem-sandbox:gui-gpu .
+#   docker build --target cli -t quarshell-sandbox:local .
+#   docker build --target gui -t quarshell-sandbox:gui .
+#   docker build --target gpu -t quarshell-sandbox:gpu .
+#   docker build --target gui-gpu -t quarshell-sandbox:gui-gpu .
 #
 # cli  — OpenShell-like base: languages, agents, networking, developer tools
 # gui  — Debian bookworm: Chromium + Xvfb/openbox/noVNC
@@ -15,8 +15,8 @@
 ARG DEBIAN_BASE=debian:bookworm@sha256:2c037a04925515fdd6ea85ea14a682d0e79931f5e9f5d07b6dbfc6ba12f9e858
 
 FROM ${DEBIAN_BASE} AS cli
-LABEL org.opencontainers.image.title="cautem-sandbox" \
-      org.opencontainers.image.description="cautem agent sandbox (OpenShell-like toolset)" \
+LABEL org.opencontainers.image.title="quarshell-sandbox" \
+      org.opencontainers.image.description="quarshell agent sandbox (OpenShell-like toolset)" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/KLORQ/quarshell-runtime"
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -68,26 +68,26 @@ RUN npm install -g \
 # uv for Python toolchain (optional; system python3 remains available)
 COPY --from=ghcr.io/astral-sh/uv:0.10.8@sha256:88234bc9e09c2b2f6d176a3daf411419eb0370d450a08129257410de9cfafd2a /uv /usr/local/bin/uv
 
-COPY cautem-init /usr/local/bin/cautem-init
-COPY cautem-supervisor /usr/local/bin/cautem-supervisor
-COPY cautem-sshd /usr/local/bin/cautem-sshd
-RUN chmod 0755 /usr/local/bin/cautem-init /usr/local/bin/cautem-supervisor /usr/local/bin/cautem-sshd \
-    && mkdir -p /cautem/data/home/.local/bin /cautem/data/bin /workspace \
+COPY quarshell-init /usr/local/bin/quarshell-init
+COPY quarshell-supervisor /usr/local/bin/quarshell-supervisor
+COPY quarshell-sshd /usr/local/bin/quarshell-sshd
+RUN chmod 0755 /usr/local/bin/quarshell-init /usr/local/bin/quarshell-supervisor /usr/local/bin/quarshell-sshd \
+    && mkdir -p /quarshell/data/home/.local/bin /quarshell/data/bin /workspace \
     && ln -sf /usr/bin/python3 /usr/local/bin/python || true
 RUN groupadd --system sandbox \
     && useradd --system --gid sandbox --home-dir /sandbox --create-home --shell /bin/bash sandbox \
-    && chown -R sandbox:sandbox /cautem/data /sandbox /workspace
+    && chown -R sandbox:sandbox /quarshell/data /sandbox /workspace
 
-ENV CAUTEM_POLICY=/cautem/policy.yaml \
-    HOME=/cautem/data/home \
-    PATH=/cautem/data/home/.local/bin:/cautem/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV QUARSHELL_POLICY=/quarshell/policy.yaml \
+    HOME=/quarshell/data/home \
+    PATH=/quarshell/data/home/.local/bin:/quarshell/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /workspace
 USER sandbox
-ENTRYPOINT ["/usr/local/bin/cautem-init"]
+ENTRYPOINT ["/usr/local/bin/quarshell-init"]
 CMD ["--", "sleep", "infinity"]
 
 # GPU-oriented sandbox: toolchain for CUDA samples / torch wheels.
-# Drivers and libcuda.so come from the host via CDI (cautem sandbox create --gpu).
+# Drivers and libcuda.so come from the host via CDI (quarshell sandbox create --gpu).
 FROM ${DEBIAN_BASE} AS gpu
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -98,21 +98,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
-COPY cautem-init /usr/local/bin/cautem-init
-COPY cautem-supervisor /usr/local/bin/cautem-supervisor
-COPY cautem-sshd /usr/local/bin/cautem-sshd
-RUN chmod 0755 /usr/local/bin/cautem-init /usr/local/bin/cautem-supervisor /usr/local/bin/cautem-sshd \
+COPY quarshell-init /usr/local/bin/quarshell-init
+COPY quarshell-supervisor /usr/local/bin/quarshell-supervisor
+COPY quarshell-sshd /usr/local/bin/quarshell-sshd
+RUN chmod 0755 /usr/local/bin/quarshell-init /usr/local/bin/quarshell-supervisor /usr/local/bin/quarshell-sshd \
     && groupadd --system sandbox \
     && useradd --system --gid sandbox --home-dir /sandbox --create-home --shell /bin/sh sandbox \
-    && mkdir -p /cautem/data /workspace \
-    && chown -R sandbox:sandbox /cautem/data /sandbox /workspace
-ENV CAUTEM_POLICY=/cautem/policy.yaml \
-    HOME=/cautem/data/home \
-    PATH=/cautem/data/home/.local/bin:/cautem/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    && mkdir -p /quarshell/data /workspace \
+    && chown -R sandbox:sandbox /quarshell/data /sandbox /workspace
+ENV QUARSHELL_POLICY=/quarshell/policy.yaml \
+    HOME=/quarshell/data/home \
+    PATH=/quarshell/data/home/.local/bin:/quarshell/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility
 USER sandbox
-ENTRYPOINT ["/usr/local/bin/cautem-init"]
+ENTRYPOINT ["/usr/local/bin/quarshell-init"]
 CMD ["--", "sleep", "infinity"]
 
 FROM ${DEBIAN_BASE} AS gui
@@ -136,33 +136,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && chromium --version
 
-COPY cautem-init /usr/local/bin/cautem-init
-COPY cautem-supervisor /usr/local/bin/cautem-supervisor
-COPY cautem-sshd /usr/local/bin/cautem-sshd
-COPY cautem-gui-boot /usr/local/bin/cautem-gui-boot
+COPY quarshell-init /usr/local/bin/quarshell-init
+COPY quarshell-supervisor /usr/local/bin/quarshell-supervisor
+COPY quarshell-sshd /usr/local/bin/quarshell-sshd
+COPY quarshell-gui-boot /usr/local/bin/quarshell-gui-boot
 COPY quarshell-display-start /usr/local/bin/quarshell-display-start
-COPY chromium-cautem /usr/local/bin/chromium-cautem
-RUN chmod 0755 /usr/local/bin/cautem-init /usr/local/bin/cautem-supervisor /usr/local/bin/cautem-sshd /usr/local/bin/cautem-gui-boot \
-        /usr/local/bin/quarshell-display-start /usr/local/bin/chromium-cautem \
-    && ln -sf /usr/local/bin/chromium-cautem /usr/local/bin/google-chrome \
-    && ln -sf /usr/local/bin/chromium-cautem /usr/local/bin/chrome \
+COPY chromium-quarshell /usr/local/bin/chromium-quarshell
+RUN chmod 0755 /usr/local/bin/quarshell-init /usr/local/bin/quarshell-supervisor /usr/local/bin/quarshell-sshd /usr/local/bin/quarshell-gui-boot \
+        /usr/local/bin/quarshell-display-start /usr/local/bin/chromium-quarshell \
+    && ln -sf /usr/local/bin/chromium-quarshell /usr/local/bin/google-chrome \
+    && ln -sf /usr/local/bin/chromium-quarshell /usr/local/bin/chrome \
     && groupadd --system sandbox \
     && useradd --system --gid sandbox --home-dir /sandbox --create-home --shell /bin/bash sandbox \
-    && mkdir -p /cautem/data /workspace \
-    && chown -R sandbox:sandbox /cautem/data /sandbox /workspace
+    && mkdir -p /quarshell/data /workspace \
+    && chown -R sandbox:sandbox /quarshell/data /sandbox /workspace
 
-ENV CAUTEM_POLICY=/cautem/policy.yaml \
-    HOME=/cautem/data/home \
-    PATH=/cautem/data/home/.local/bin:/cautem/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+ENV QUARSHELL_POLICY=/quarshell/policy.yaml \
+    HOME=/quarshell/data/home \
+    PATH=/quarshell/data/home/.local/bin:/quarshell/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     DISPLAY=:99 \
     DISPLAY_MODE=none \
-    CAUTEM_DISPLAY_GEOM=1280x800x24 \
-    CHROME_BIN=/usr/local/bin/chromium-cautem \
-    BROWSER=/usr/local/bin/chromium-cautem
+    QUARSHELL_DISPLAY_GEOM=1280x800x24 \
+    CHROME_BIN=/usr/local/bin/chromium-quarshell \
+    BROWSER=/usr/local/bin/chromium-quarshell
 
 USER sandbox
-ENTRYPOINT ["/usr/local/bin/cautem-init"]
-CMD ["--", "/usr/local/bin/cautem-gui-boot"]
+ENTRYPOINT ["/usr/local/bin/quarshell-init"]
+CMD ["--", "/usr/local/bin/quarshell-gui-boot"]
 
 # Experimental GUI + GPU image. The host must provide a compatible NVIDIA
 # Container Toolkit/CDI setup. Enabling driver capabilities is not proof that
@@ -178,12 +178,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mesa-utils \
     vulkan-tools \
     && rm -rf /var/lib/apt/lists/*
-COPY chromium-cautem-gpu /usr/local/bin/chromium-cautem-gpu
-RUN chmod 0755 /usr/local/bin/chromium-cautem-gpu \
-    && ln -sf /usr/local/bin/chromium-cautem-gpu /usr/local/bin/google-chrome \
-    && ln -sf /usr/local/bin/chromium-cautem-gpu /usr/local/bin/chrome
-ENV CHROME_BIN=/usr/local/bin/chromium-cautem-gpu \
-    BROWSER=/usr/local/bin/chromium-cautem-gpu \
+COPY chromium-quarshell-gpu /usr/local/bin/chromium-quarshell-gpu
+RUN chmod 0755 /usr/local/bin/chromium-quarshell-gpu \
+    && ln -sf /usr/local/bin/chromium-quarshell-gpu /usr/local/bin/google-chrome \
+    && ln -sf /usr/local/bin/chromium-quarshell-gpu /usr/local/bin/chrome
+ENV CHROME_BIN=/usr/local/bin/chromium-quarshell-gpu \
+    BROWSER=/usr/local/bin/chromium-quarshell-gpu \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=graphics,display,compute,utility
 USER sandbox

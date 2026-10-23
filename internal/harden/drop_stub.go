@@ -4,7 +4,7 @@ package harden
 
 import "errors"
 
-import "github.com/KLORQ/quarshell-core/policy"
+import "github.com/KLORQ/quarshell-policy/corepolicy"
 
 var errPrivilegeDropUnavailable = errors.New("privilege drop only available on linux")
 

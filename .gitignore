@@ -2,7 +2,7 @@
 *.test
 *.out
 /osg
-/cautem-init
+/quarshell-init
 /quarshell-gateway
 .DS_Store
-/cautem-agent
+/quarshell-agent

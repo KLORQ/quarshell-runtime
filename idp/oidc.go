@@ -506,7 +506,7 @@ func validateJWKSAllowedOrigin(value string, allowHTTP bool) (*url.URL, error) {
 		return nil, fmt.Errorf("oidc: JWKS allowed origin must not include a path, query, or fragment")
 	}
 	scheme := strings.ToLower(parsed.Scheme)
-	if scheme != "https" && !(scheme == "http" && allowHTTP && numericLoopback(parsed.Hostname())) {
+	if scheme != "https" && (scheme != "http" || !allowHTTP || !numericLoopback(parsed.Hostname())) {
 		return nil, fmt.Errorf("oidc: JWKS allowed origin must use HTTPS")
 	}
 	return parsed, nil
@@ -521,7 +521,7 @@ func validateJWKSURL(value string, config OIDCConfig) error {
 		return fmt.Errorf("oidc: discovery jwks_uri must not include a fragment")
 	}
 	scheme := strings.ToLower(jwks.Scheme)
-	if scheme != "https" && !(scheme == "http" && config.AllowInsecureHTTP && numericLoopback(jwks.Hostname())) {
+	if scheme != "https" && (scheme != "http" || !config.AllowInsecureHTTP || !numericLoopback(jwks.Hostname())) {
 		return fmt.Errorf("oidc: discovery jwks_uri must use HTTPS")
 	}
 	issuer, _ := url.Parse(config.Issuer)
@@ -547,9 +547,10 @@ func urlOrigin(value *url.URL) string {
 	host := strings.ToLower(value.Hostname())
 	port := value.Port()
 	if port == "" {
-		if scheme == "https" {
+		switch scheme {
+		case "https":
 			port = "443"
-		} else if scheme == "http" {
+		case "http":
 			port = "80"
 		}
 	}

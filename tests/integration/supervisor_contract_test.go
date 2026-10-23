@@ -270,13 +270,13 @@ func TestGRPCTarget(t *testing.T) {
 }
 
 func TestGatewayTLSConfigRequiresCompleteTriplet(t *testing.T) {
-	t.Setenv("CAUTEM_GUEST_TLS_CA", "")
-	t.Setenv("CAUTEM_GUEST_TLS_CERT", "")
-	t.Setenv("CAUTEM_GUEST_TLS_KEY", "")
+	t.Setenv("QUARSHELL_GUEST_TLS_CA", "")
+	t.Setenv("QUARSHELL_GUEST_TLS_CERT", "")
+	t.Setenv("QUARSHELL_GUEST_TLS_KEY", "")
 	if config, err := relayclient.GatewayTLSConfigFromEnvironment(); err != nil || config != nil {
 		t.Fatalf("empty TLS environment=(%v,%v), want (nil,nil)", config, err)
 	}
-	t.Setenv("CAUTEM_GUEST_TLS_CA", "/ca.pem")
+	t.Setenv("QUARSHELL_GUEST_TLS_CA", "/ca.pem")
 	if config, err := relayclient.GatewayTLSConfigFromEnvironment(); err == nil || config != nil {
 		t.Fatalf("partial TLS environment=(%v,%v), want error", config, err)
 	}

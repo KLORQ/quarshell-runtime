@@ -5,7 +5,7 @@ package harden
 import (
 	"os"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func privateCredentialDirOwnedByCurrentUser(os.FileInfo) bool { return true }

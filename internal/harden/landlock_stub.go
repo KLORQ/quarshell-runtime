@@ -5,7 +5,7 @@ package harden
 import (
 	"errors"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 var errLandlockUnavailable = errors.New("landlock only available on linux")

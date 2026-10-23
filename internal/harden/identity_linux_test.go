@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/KLORQ/quarshell-core/policy"
+	"github.com/KLORQ/quarshell-policy/corepolicy"
 )
 
 func TestTargetIDsUsesCompatDriverIdentityBeforePolicy(t *testing.T) {
@@ -141,7 +141,7 @@ func TestTargetIDsDefaultsRootToSandbox(t *testing.T) {
 }
 
 func TestDropPrivilegesUsesPolicyIdentity(t *testing.T) {
-	const childEnv = "CAUTEM_IDENTITY_TEST_CHILD"
+	const childEnv = "QUARSHELL_IDENTITY_TEST_CHILD"
 	t.Setenv(sandboxUIDEnv, "")
 	t.Setenv(sandboxGIDEnv, "")
 	if os.Getenv(childEnv) == "1" {
@@ -165,7 +165,7 @@ func TestDropPrivilegesUsesPolicyIdentity(t *testing.T) {
 }
 
 func TestDropPrivilegesAcceptsAlreadySelectedNonRootIdentity(t *testing.T) {
-	const childEnv = "CAUTEM_NONROOT_IDENTITY_TEST_CHILD"
+	const childEnv = "QUARSHELL_NONROOT_IDENTITY_TEST_CHILD"
 	if os.Getenv(childEnv) == "1" {
 		uid, gid := os.Getuid(), os.Getgid()
 		doc := policy.Document{Process: &policy.Process{
