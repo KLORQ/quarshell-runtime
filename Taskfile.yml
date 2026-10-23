@@ -1,0 +1,128 @@
+version: "3"
+
+vars:
+  IMAGE_DIR: images/sandbox
+  ARCH: '{{.ARCH | default ""}}'
+
+tasks:
+  test:
+    desc: go test ./...
+    cmds:
+      - CGO_ENABLED=0 go test ./...
+  build:
+    desc: go build ./...
+    cmds:
+      - go build ./...
+  vet:
+    desc: go vet ./...
+    cmds:
+      - go vet ./...
+  check:quick:
+    desc: vet + test + build
+    cmds:
+      - task: vet
+      - task: test
+      - task: build
+
+  image:cli:
+    desc: Build quarshell-sandbox:local
+    cmds:
+      - task: image
+        vars:
+          TARGET: cli
+
+  image:gui:
+    desc: Build quarshell-sandbox:gui
+    cmds:
+      - task: image
+        vars:
+          TARGET: gui
+
+  image:gpu:
+    desc: Build quarshell-sandbox:gpu
+    cmds:
+      - task: image
+        vars:
+          TARGET: gpu
+
+  image:gui-gpu:
+    desc: Build quarshell-sandbox:gui-gpu (experimental)
+    cmds:
+      - task: image
+        vars:
+          TARGET: gui-gpu
+
+  image:both:
+    desc: Build cli + gui images
+    cmds:
+      - task: image
+        vars:
+          TARGET: both
+
+  image:all:
+    desc: Build cli + gui + gpu + gui-gpu images
+    cmds:
+      - task: image
+        vars:
+          TARGET: all
+
+  image:
+    desc: "Build sandbox image(s). TARGET=cli|gui|gpu|gui-gpu|both|all (default gui)"
+    vars:
+      TARGET: '{{.TARGET | default "gui"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        ROOT="{{.ROOT_DIR}}"
+        # When included from org Taskfile as runtime:*, ROOT_DIR is the org root.
+        if [[ ! -d "$ROOT/cmd/quarshell-init" && -d "$ROOT/quarshell-runtime/cmd/quarshell-init" ]]; then
+          ROOT="$ROOT/quarshell-runtime"
+        fi
+        TARGET="{{.TARGET}}"
+        ARCH="{{.ARCH}}"
+        if [[ -z "$ARCH" ]]; then
+          ARCH="${GOARCH:-$(go env GOARCH)}"
+        fi
+        STAGE="$(mktemp -d)"
+        trap 'rm -rf "$STAGE"' EXIT
+        IMG_DIR="$ROOT/{{.IMAGE_DIR}}"
+
+        echo "cross-compile quarshell-init, quarshell-supervisor and quarshell-sshd (linux/$ARCH)…"
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/quarshell-init" ./cmd/quarshell-init
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/quarshell-supervisor" ./cmd/quarshell-supervisor
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/quarshell-sshd" ./cmd/quarshell-sshd
+        cp "$IMG_DIR/Dockerfile" "$STAGE/Dockerfile"
+        cp "$IMG_DIR/quarshell-gui-boot" "$STAGE/quarshell-gui-boot"
+        cp "$IMG_DIR/quarshell-display-start" "$STAGE/quarshell-display-start"
+        cp "$IMG_DIR/chromium-quarshell" "$STAGE/chromium-quarshell"
+        cp "$IMG_DIR/chromium-quarshell-gpu" "$STAGE/chromium-quarshell-gpu"
+        chmod +x "$STAGE/quarshell-gui-boot" "$STAGE/quarshell-display-start" "$STAGE/chromium-quarshell" "$STAGE/chromium-quarshell-gpu"
+
+        build_one() {
+          local t="$1" tag="$2"
+          echo "docker build --target $t -t $tag …"
+          docker build --target "$t" -t "$tag" "$STAGE"
+          docker run --rm --entrypoint /usr/local/bin/quarshell-sshd "$tag" --help >/dev/null
+          echo "ok: $tag"
+        }
+
+        case "$TARGET" in
+          cli)  build_one cli "${QUARSHELL_SANDBOX_IMAGE:-quarshell-sandbox:local}" ;;
+          gui)  build_one gui "${QUARSHELL_GUI_IMAGE:-quarshell-sandbox:gui}" ;;
+          gpu)  build_one gpu "${QUARSHELL_GPU_IMAGE:-quarshell-sandbox:gpu}" ;;
+          gui-gpu) build_one gui-gpu "${QUARSHELL_GUI_GPU_IMAGE:-quarshell-sandbox:gui-gpu}" ;;
+          both)
+            build_one cli "${QUARSHELL_SANDBOX_IMAGE:-quarshell-sandbox:local}"
+            build_one gui "${QUARSHELL_GUI_IMAGE:-quarshell-sandbox:gui}"
+            ;;
+          all)
+            build_one cli "${QUARSHELL_SANDBOX_IMAGE:-quarshell-sandbox:local}"
+            build_one gui "${QUARSHELL_GUI_IMAGE:-quarshell-sandbox:gui}"
+            build_one gpu "${QUARSHELL_GPU_IMAGE:-quarshell-sandbox:gpu}"
+            build_one gui-gpu "${QUARSHELL_GUI_GPU_IMAGE:-quarshell-sandbox:gui-gpu}"
+            ;;
+          *)
+            echo "usage: task runtime:image TARGET=cli|gui|gpu|gui-gpu|both|all" >&2
+            exit 2
+            ;;
+        esac

@@ -1,0 +1,40 @@
+#!/bin/sh
+# Start Xvfb + openbox + x11vnc + websockify/noVNC (loopback inside container).
+set -eu
+DISPLAY="${DISPLAY:-:99}"
+PASS="${QUARSHELL_VNC_PASSWORD:-quarshell}"
+GEOM="${QUARSHELL_DISPLAY_GEOM:-1280x800x24}"
+NOVNC_WEB="${NOVNC_WEB:-/usr/share/novnc}"
+RFB_PORT="${QUARSHELL_VNC_PORT:-5900}"
+HTTP_PORT="${QUARSHELL_NOVNC_PORT:-6080}"
+
+mkdir -p /tmp/.X11-unix /tmp/quarshell-display /var/run/osg
+chmod 1777 /tmp/.X11-unix
+
+# Password file for x11vnc (-passwdfile avoids argv visibility a bit).
+PASSFILE=/tmp/quarshell-display/vnc.pass
+printf '%s\n' "$PASS" >"$PASSFILE"
+chmod 600 "$PASSFILE"
+
+if ! command -v Xvfb >/dev/null; then
+  echo "quarshell-display: Xvfb not installed (use quarshell-sandbox:gui image)" >&2
+  exit 1
+fi
+
+Xvfb "$DISPLAY" -screen 0 "$GEOM" -ac +extension GLX +render -noreset >/tmp/quarshell-display/xvfb.log 2>&1 &
+sleep 0.4
+openbox >/tmp/quarshell-display/openbox.log 2>&1 &
+x11vnc -display "$DISPLAY" -forever -shared -rfbport "$RFB_PORT" -localhost \
+  -passwdfile "$PASSFILE" -quiet >/tmp/quarshell-display/x11vnc.log 2>&1 &
+
+if [ ! -d "$NOVNC_WEB" ]; then
+  # alternate novnc package layout
+  for d in /usr/share/novnc /usr/share/novnc/utils/..; do
+    if [ -d "$d" ]; then NOVNC_WEB="$d"; break; fi
+  done
+fi
+
+websockify --web="$NOVNC_WEB" "$HTTP_PORT" "localhost:$RFB_PORT" \
+  >/tmp/quarshell-display/websockify.log 2>&1 &
+
+echo "quarshell-display: novnc listening on 0.0.0.0:${HTTP_PORT} (publish host loopback only)" >&2

@@ -1,0 +1,163 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 the quarshell authors
+# SPDX-License-Identifier: Apache-2.0
+name: images-sandbox
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "images/**"
+      - "cmd/quarshell-init/**"
+      - "cmd/quarshell-supervisor/**"
+      - "cmd/quarshell-sshd/**"
+      - "internal/app/supervisor/**"
+      - "internal/app/sshd/**"
+      - "sshserver/**"
+      - "supervisorcontrol/**"
+      - "relaytarget/**"
+      - "go.mod"
+      - "go.sum"
+      - "harden/**"
+      - ".github/workflows/images-sandbox.yml"
+  pull_request:
+    paths:
+      - "images/**"
+      - "cmd/quarshell-init/**"
+      - "cmd/quarshell-supervisor/**"
+      - "cmd/quarshell-sshd/**"
+      - "internal/app/supervisor/**"
+      - "internal/app/sshd/**"
+      - "sshserver/**"
+      - "supervisorcontrol/**"
+      - "relaytarget/**"
+      - "go.mod"
+      - "go.sum"
+      - "harden/**"
+      - ".github/workflows/images-sandbox.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # OpenShell-style: one image name per flavor under …/sandboxes/<name>
+  IMAGE_PREFIX: ghcr.io/klorq/quarshell/sandboxes
+  GOWORK: ${{ github.workspace }}/go.work
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: cli
+            name: base
+          - target: gui
+            name: gui
+          - target: gpu
+            name: gpu
+          - target: gui-gpu
+            name: gui-gpu
+    steps:
+      - name: Checkout quarshell-runtime
+        uses: actions/checkout@v4
+        with:
+          path: quarshell-runtime
+      - name: Checkout quarshell-core
+        uses: actions/checkout@v4
+        with:
+          repository: KLORQ/quarshell-core
+          ref: v0.5.2
+          path: quarshell-core
+      - name: Checkout quarshell-driver
+        uses: actions/checkout@v4
+        with:
+          repository: KLORQ/quarshell-driver
+          ref: v0.2.4
+          path: quarshell-driver
+      - name: Checkout quarshell-proxy
+        uses: actions/checkout@v4
+        with:
+          repository: KLORQ/quarshell-proxy
+          ref: v0.1.5
+          path: quarshell-proxy
+
+      - name: Checkout quarshell-proto workspace dependency
+        uses: actions/checkout@v4
+        with:
+          repository: KLORQ/quarshell-proto
+          ref: v0.2.6
+          path: quarshell-proto
+      - name: Write go.work
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'go 1.27.0'
+            echo 'use ('
+            modules=()
+            for d in quarshell-*; do
+              [[ -f "$d/go.mod" ]] && modules+=("$d")
+            done
+            for d in "${modules[@]}"; do
+              echo "  ./$d"
+            done
+            echo ')'
+            echo 'replace ('
+            for d in "${modules[@]}"; do
+              module="$(sed -n 's/^module[[:space:]][[:space:]]*//p' "$d/go.mod" | head -n 1)"
+              [[ -n "$module" ]] || continue
+              for source in "${modules[@]}"; do
+                awk -v module="$module" '$1 == module && $2 ~ /^v[0-9]/ { print $2 }; $1 == "require" && $2 == module && $3 ~ /^v[0-9]/ { print $3 }' "$source/go.mod"
+              done | sort -u | while IFS= read -r version; do
+                printf '  %s %s => ./%s\n' "$module" "$version" "$d"
+              done
+            done
+            echo ')'
+          } > "${{ github.workspace }}/go.work"
+          echo "Wrote go.work:" && cat "${{ github.workspace }}/go.work"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.3"
+          cache: true
+          cache-dependency-path: |
+            quarshell-*/go.sum
+      - uses: docker/setup-buildx-action@v3
+      - name: Build runtime helpers into image context
+        working-directory: quarshell-runtime
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/quarshell-init ./cmd/quarshell-init
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/quarshell-supervisor ./cmd/quarshell-supervisor
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/quarshell-sshd ./cmd/quarshell-sshd
+      - name: Login GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: quarshell-runtime/images/sandbox
+          file: quarshell-runtime/images/sandbox/Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

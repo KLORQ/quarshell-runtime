@@ -1,0 +1,9 @@
+#!/bin/sh
+# Chromium in Docker: namespace sandbox + tiny /dev/shm need these flags.
+# Real binary remains /usr/bin/chromium (Debian bookworm .deb).
+exec /usr/bin/chromium \
+  --no-sandbox \
+  --disable-dev-shm-usage \
+  --disable-gpu \
+  --disable-software-rasterizer \
+  "$@"

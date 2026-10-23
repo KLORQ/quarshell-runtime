@@ -1,0 +1,8 @@
+*.exe
+*.test
+*.out
+/osg
+/quarshell-init
+/quarshell-gateway
+.DS_Store
+/quarshell-agent
