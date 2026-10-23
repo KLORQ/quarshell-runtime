@@ -1,6 +1,6 @@
 # Roadmap — quarshell-runtime
 
-Status: **v0.3.0** (release prepared) · Depends on core `v0.3.0` / driver `v0.2.1`; slogx `v0.1.3`
+Status: pre-stable API · Current module tag: `v0.1.1` · Dependencies are listed in `go.mod`.
 
 ## This module
 
@@ -11,6 +11,9 @@ Status: **v0.3.0** (release prepared) · Depends on core `v0.3.0` / driver `v0.2
 | T3 | **Identity federation** | Align gateway OIDC/mTLS and workload identity with OpenShell config and authorization semantics |
 | T4 | **Harden depth** | Landlock/seccomp profile documentation |
 
+
 ## Release
 
-Tagged after core + driver + proxy in the cascade.
+This module follows its own pre-stable 0.x version sequence. Publish dependencies
+first, update consumers to the published tags, and verify with `GOWORK=off`. Never
+rewrite a published tag.
