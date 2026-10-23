@@ -1,0 +1,128 @@
+version: "3"
+
+vars:
+  IMAGE_DIR: images/sandbox
+  ARCH: '{{.ARCH | default ""}}'
+
+tasks:
+  test:
+    desc: go test ./...
+    cmds:
+      - CGO_ENABLED=0 go test ./...
+  build:
+    desc: go build ./...
+    cmds:
+      - go build ./...
+  vet:
+    desc: go vet ./...
+    cmds:
+      - go vet ./...
+  check:quick:
+    desc: vet + test + build
+    cmds:
+      - task: vet
+      - task: test
+      - task: build
+
+  image:cli:
+    desc: Build cautem-sandbox:local
+    cmds:
+      - task: image
+        vars:
+          TARGET: cli
+
+  image:gui:
+    desc: Build cautem-sandbox:gui
+    cmds:
+      - task: image
+        vars:
+          TARGET: gui
+
+  image:gpu:
+    desc: Build cautem-sandbox:gpu
+    cmds:
+      - task: image
+        vars:
+          TARGET: gpu
+
+  image:gui-gpu:
+    desc: Build cautem-sandbox:gui-gpu (experimental)
+    cmds:
+      - task: image
+        vars:
+          TARGET: gui-gpu
+
+  image:both:
+    desc: Build cli + gui images
+    cmds:
+      - task: image
+        vars:
+          TARGET: both
+
+  image:all:
+    desc: Build cli + gui + gpu + gui-gpu images
+    cmds:
+      - task: image
+        vars:
+          TARGET: all
+
+  image:
+    desc: "Build sandbox image(s). TARGET=cli|gui|gpu|gui-gpu|both|all (default gui)"
+    vars:
+      TARGET: '{{.TARGET | default "gui"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        ROOT="{{.ROOT_DIR}}"
+        # When included from org Taskfile as runtime:*, ROOT_DIR is the org root.
+        if [[ ! -d "$ROOT/cmd/cautem-init" && -d "$ROOT/quarshell-runtime/cmd/cautem-init" ]]; then
+          ROOT="$ROOT/quarshell-runtime"
+        fi
+        TARGET="{{.TARGET}}"
+        ARCH="{{.ARCH}}"
+        if [[ -z "$ARCH" ]]; then
+          ARCH="${GOARCH:-$(go env GOARCH)}"
+        fi
+        STAGE="$(mktemp -d)"
+        trap 'rm -rf "$STAGE"' EXIT
+        IMG_DIR="$ROOT/{{.IMAGE_DIR}}"
+
+        echo "cross-compile cautem-init, cautem-supervisor and cautem-sshd (linux/$ARCH)…"
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/cautem-init" ./cmd/cautem-init
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/cautem-supervisor" ./cmd/cautem-supervisor
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/cautem-sshd" ./cmd/cautem-sshd
+        cp "$IMG_DIR/Dockerfile" "$STAGE/Dockerfile"
+        cp "$IMG_DIR/cautem-gui-boot" "$STAGE/cautem-gui-boot"
+        cp "$IMG_DIR/quarshell-display-start" "$STAGE/quarshell-display-start"
+        cp "$IMG_DIR/chromium-cautem" "$STAGE/chromium-cautem"
+        cp "$IMG_DIR/chromium-cautem-gpu" "$STAGE/chromium-cautem-gpu"
+        chmod +x "$STAGE/cautem-gui-boot" "$STAGE/quarshell-display-start" "$STAGE/chromium-cautem" "$STAGE/chromium-cautem-gpu"
+
+        build_one() {
+          local t="$1" tag="$2"
+          echo "docker build --target $t -t $tag …"
+          docker build --target "$t" -t "$tag" "$STAGE"
+          docker run --rm --entrypoint /usr/local/bin/cautem-sshd "$tag" --help >/dev/null
+          echo "ok: $tag"
+        }
+
+        case "$TARGET" in
+          cli)  build_one cli "${CAUTEM_SANDBOX_IMAGE:-cautem-sandbox:local}" ;;
+          gui)  build_one gui "${CAUTEM_GUI_IMAGE:-cautem-sandbox:gui}" ;;
+          gpu)  build_one gpu "${CAUTEM_GPU_IMAGE:-cautem-sandbox:gpu}" ;;
+          gui-gpu) build_one gui-gpu "${CAUTEM_GUI_GPU_IMAGE:-cautem-sandbox:gui-gpu}" ;;
+          both)
+            build_one cli "${CAUTEM_SANDBOX_IMAGE:-cautem-sandbox:local}"
+            build_one gui "${CAUTEM_GUI_IMAGE:-cautem-sandbox:gui}"
+            ;;
+          all)
+            build_one cli "${CAUTEM_SANDBOX_IMAGE:-cautem-sandbox:local}"
+            build_one gui "${CAUTEM_GUI_IMAGE:-cautem-sandbox:gui}"
+            build_one gpu "${CAUTEM_GPU_IMAGE:-cautem-sandbox:gpu}"
+            build_one gui-gpu "${CAUTEM_GUI_GPU_IMAGE:-cautem-sandbox:gui-gpu}"
+            ;;
+          *)
+            echo "usage: task runtime:image TARGET=cli|gui|gpu|gui-gpu|both|all" >&2
+            exit 2
+            ;;
+        esac
