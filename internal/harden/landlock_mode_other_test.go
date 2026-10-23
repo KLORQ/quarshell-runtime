@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -64,6 +65,9 @@ func TestLandlockCompatibilityModesWhenUnavailable(t *testing.T) {
 	}
 
 	privateDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Skip("private credential mode bits are POSIX-specific")
+	}
 	if err := os.Chmod(privateDir, 0o700); err != nil {
 		t.Fatal(err)
 	}

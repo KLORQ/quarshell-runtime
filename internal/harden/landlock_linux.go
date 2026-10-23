@@ -30,10 +30,6 @@ func applyLandlock(doc policy.Document) error {
 	return applyLandlockWithMode(doc, abi, ModeFromPolicy(doc))
 }
 
-func applyLandlockWithABI(doc policy.Document, kernelABI int) error {
-	return applyLandlockWithMode(doc, kernelABI, ModeFromPolicy(doc))
-}
-
 func applyLandlockWithMode(doc policy.Document, kernelABI int, mode Mode) error {
 	workdir, err := os.Getwd()
 	if err != nil {
@@ -64,7 +60,7 @@ func applyLandlockWithMode(doc policy.Document, kernelABI int, mode Mode) error 
 
 	profileABI := landlockProfileMaxABI(kernelABI)
 	if mode == ModeRequired && profileABI < 3 {
-		return fmt.Errorf("Landlock ABI v3 or newer is required in hard_requirement mode; detected ABI %d", profileABI)
+		return fmt.Errorf("landlock ABI v3 or newer is required in hard_requirement mode; detected ABI %d", profileABI)
 	}
 	var cfg ll.Config
 	if profileABI >= 7 {

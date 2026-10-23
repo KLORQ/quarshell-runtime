@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/KLORQ/quarshell-policy/corepolicy"
@@ -122,6 +123,9 @@ func TestPrivateCredentialDirectoryRejectsOverlappingFilesystemGrants(t *testing
 }
 
 func TestPrivateCredentialDirectoryUsesDACAfterGuaranteedIdentityDrop(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("credential DAC ownership is POSIX-specific")
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
@@ -155,6 +159,9 @@ func TestPrivateCredentialDirectoryUsesDACAfterGuaranteedIdentityDrop(t *testing
 }
 
 func TestPrivateCredentialDirectoryRejectsRuntimeTemporaryGrant(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("runtime /tmp policy is POSIX-specific")
+	}
 	privateDir, err := os.MkdirTemp("/tmp", "quarshell-private-control-")
 	if err != nil {
 		t.Skipf("create temporary private directory under /tmp: %v", err)

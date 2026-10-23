@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/KLORQ/quarshell-core/isolation"
 )
 
 func TestValidateIsolationDescriptorBindsHostSupervisorIdentity(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("descriptor permission mode bits are POSIX-specific")
+	}
 	dir := t.TempDir()
 	path := filepath.Join(dir, "isolation-descriptor.json")
 	rootfsDigest := "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

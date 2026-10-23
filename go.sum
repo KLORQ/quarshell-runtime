@@ -2,8 +2,8 @@ github.com/KLORQ/quarshell-core v0.5.1 h1:bu9m3e7IZKybXc4InEZO7D7AWTe6HsaeOrKG1n
 github.com/KLORQ/quarshell-core v0.5.1/go.mod h1:gHggdU6fpuufmPaXbf+r+2HUHl//OnnEKAfSK9tqSRs=
 github.com/KLORQ/quarshell-policy v0.2.1 h1:riq3KptPMdMEBuJ9TRsD6gb3N+3LI734D+g1iEranKY=
 github.com/KLORQ/quarshell-policy v0.2.1/go.mod h1:0FEQR14+sBTAu6mJs5rrKUDp9kqvTmomMXeZlN85/ds=
-github.com/KLORQ/quarshell-proto v0.2.4 h1:6ioeL5ava8VLD6jmaFoDNIHFdav6dB5T6yLCILI6cN0=
-github.com/KLORQ/quarshell-proto v0.2.4/go.mod h1:D6KFKxH6q1foj52f/G8z+VysbIea6UVLMJHb2euxZ9k=
+github.com/KLORQ/quarshell-proto v0.2.5 h1:aXMsmbwpJddMvCexzfsAumf2DZT1DrpRFJ2ePtelI3A=
+github.com/KLORQ/quarshell-proto v0.2.5/go.mod h1:D6KFKxH6q1foj52f/G8z+VysbIea6UVLMJHb2euxZ9k=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=

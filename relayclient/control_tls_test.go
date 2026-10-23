@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -48,6 +49,7 @@ func outgoingBearer(ctx context.Context) string {
 }
 
 func TestLifecycleExitRPCsUseSandboxProtocolBearer(t *testing.T) {
+	requireUnixSockets(t)
 	dir, err := os.MkdirTemp("/tmp", "exit-")
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +124,7 @@ func TestLifecycleControlServesRemoteWorkloadOverMTLS(t *testing.T) {
 }
 
 func TestLifecycleControlCanServeMTLSOnUnixSocket(t *testing.T) {
+	requireUnixSockets(t)
 	ca, caKey := newControlTestCA(t)
 	serverCert := newControlTestCert(t, ca, caKey, true)
 	clientCert := newControlTestCert(t, ca, caKey, false)
@@ -153,6 +156,7 @@ func TestLifecycleControlCanServeMTLSOnUnixSocket(t *testing.T) {
 }
 
 func TestLifecycleControlRequiresClaimsForVMIdentity(t *testing.T) {
+	requireUnixSockets(t)
 	ca, caKey := newControlTestCA(t)
 	serverCert := newControlTestCert(t, ca, caKey, true)
 	clientCert := newControlTestCert(t, ca, caKey, false)
@@ -186,6 +190,7 @@ func TestLifecycleControlRequiresClaimsForVMIdentity(t *testing.T) {
 }
 
 func TestBeginWaitsForGatewaySupervisorSession(t *testing.T) {
+	requireUnixSockets(t)
 	dir, err := os.MkdirTemp("/tmp", "rc-")
 	if err != nil {
 		t.Fatal(err)
@@ -222,6 +227,13 @@ func TestBeginWaitsForGatewaySupervisorSession(t *testing.T) {
 		}
 	case <-ctx.Done():
 		t.Fatal("begin did not return after the supervisor session connected")
+	}
+}
+
+func requireUnixSockets(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor control Unix sockets are not supported on Windows")
 	}
 }
 
