@@ -24,6 +24,48 @@ type refreshSessionServer struct {
 	refreshes atomic.Int32
 }
 
+type redirectSessionServer struct {
+	openshellv1.UnimplementedOpenShellServer
+	hello chan *openshellv1.SupervisorHello
+}
+
+func (s *redirectSessionServer) ConnectSupervisor(stream openshellv1.OpenShell_ConnectSupervisorServer) error {
+	message, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	s.hello <- message.GetHello()
+	return stream.Send(&openshellv1.GatewayMessage{Payload: &openshellv1.GatewayMessage_SessionRedirect{SessionRedirect: &openshellv1.SessionRedirect{PeerEndpoint: "https://gateway-b.example:7444", OwnerReplicaId: "gateway-b"}}})
+}
+
+func TestSupervisorSessionAdvertisesAndFollowsRedirectContract(t *testing.T) {
+	listener := bufconn.Listen(1 << 20)
+	server := grpc.NewServer()
+	backend := &redirectSessionServer{hello: make(chan *openshellv1.SupervisorHello, 1)}
+	openshellv1.RegisterOpenShellServer(server, backend)
+	go func() { _ = server.Serve(listener) }()
+	defer server.Stop()
+	conn, err := grpc.NewClient("passthrough:///bufconn", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	cfg := Config{Sandbox: "sandbox-1", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	err = supervisorSession(context.Background(), openshellv1.NewOpenShellClient(conn), cfg, "instance-1", 1, newSupervisorInstance("instance-1"), newSupervisorToken("sandbox-token"), newSupervisorToken("gateway-token"), true)
+	var redirect *sessionRedirectError
+	if !errors.As(err, &redirect) || redirect.endpoint != "https://gateway-b.example:7444" {
+		t.Fatalf("session error = %v; want redirect to gateway-b", err)
+	}
+	select {
+	case hello := <-backend.hello:
+		if !hello.GetSupportsSessionRedirect() || !hello.GetRedirected() {
+			t.Fatalf("hello = %+v; expected redirect capability and redirected marker", hello)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("gateway did not receive supervisor hello")
+	}
+}
+
 func (s *refreshSessionServer) ConnectSupervisor(stream openshellv1.OpenShell_ConnectSupervisorServer) error {
 	message, err := stream.Recv()
 	if err != nil {
@@ -80,7 +122,7 @@ func TestCompatSessionRefreshesSupervisorToken(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() {
-		done <- supervisorSession(ctx, client, cfg, "instance-1", 1, instance, token, gatewayToken)
+		done <- supervisorSession(ctx, client, cfg, "instance-1", 1, instance, token, gatewayToken, false)
 	}()
 	deadline := time.After(2 * time.Second)
 	ticker := time.NewTicker(5 * time.Millisecond)

@@ -19,13 +19,19 @@ type supervisorControl struct {
 	mu     sync.Mutex
 }
 
+type sessionRedirectError struct{ endpoint string }
+
+func (e *sessionRedirectError) Error() string {
+	return "gateway redirected supervisor session to " + e.endpoint
+}
+
 func (c *supervisorControl) send(message *openshellv1.SupervisorMessage) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.stream.Send(message)
 }
 
-func supervisorSession(ctx context.Context, client openshellv1.OpenShellClient, cfg Config, instanceID string, connectionEpoch uint64, instance *supervisorInstance, token, gatewayToken *supervisorToken) error {
+func supervisorSession(ctx context.Context, client openshellv1.OpenShellClient, cfg Config, instanceID string, connectionEpoch uint64, instance *supervisorInstance, token, gatewayToken *supervisorToken, redirected bool) error {
 	sessionCtx, sessionCancel := context.WithCancel(ctx)
 	defer sessionCancel()
 	if token.get() == "" {
@@ -40,7 +46,7 @@ func supervisorSession(ctx context.Context, client openshellv1.OpenShellClient, 
 	if connectionEpoch == 0 {
 		return errors.New("supervisor connection epoch must be positive")
 	}
-	if err := control.send(&openshellv1.SupervisorMessage{Payload: &openshellv1.SupervisorMessage_Hello{Hello: &openshellv1.SupervisorHello{SandboxId: cfg.Sandbox, InstanceId: instanceID, ConnectionEpoch: connectionEpoch}}}); err != nil {
+	if err := control.send(&openshellv1.SupervisorMessage{Payload: &openshellv1.SupervisorMessage_Hello{Hello: &openshellv1.SupervisorHello{SandboxId: cfg.Sandbox, InstanceId: instanceID, ConnectionEpoch: connectionEpoch, SupportsSessionRedirect: true, Redirected: redirected}}}); err != nil {
 		return err
 	}
 	accepted, err := stream.Recv()
@@ -49,6 +55,9 @@ func supervisorSession(ctx context.Context, client openshellv1.OpenShellClient, 
 	}
 	if rejected := accepted.GetSessionRejected(); rejected != nil {
 		return fmt.Errorf("gateway rejected supervisor session: %s", rejected.GetReason())
+	}
+	if redirect := accepted.GetSessionRedirect(); redirect != nil && redirect.GetPeerEndpoint() != "" {
+		return &sessionRedirectError{endpoint: redirect.GetPeerEndpoint()}
 	}
 	if accepted.GetSessionAccepted() == nil {
 		return errors.New("gateway did not accept supervisor session")

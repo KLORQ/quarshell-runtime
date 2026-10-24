@@ -50,6 +50,14 @@ func runSupervisorGRPC(ctx context.Context, cfg Config) error {
 	}
 	defer conn.Close()
 	client := openshellv1.NewOpenShellClient(conn)
+	activeConn := conn
+	activeClient := client
+	redirected := false
+	defer func() {
+		if activeConn != conn {
+			_ = activeConn.Close()
+		}
+	}()
 	instanceID := ""
 	if strings.TrimSpace(cfg.SupervisorControlSocket) == "" && strings.TrimSpace(cfg.SupervisorControlAddress) == "" {
 		instanceID, err = newInstanceID()
@@ -96,13 +104,41 @@ func runSupervisorGRPC(ctx context.Context, cfg Config) error {
 			case <-sessionCtx.Done():
 			}
 		}()
-		err = supervisorSession(sessionCtx, client, cfg, instanceID, connectionEpoch, instance, token, gatewayToken)
+		err = supervisorSession(sessionCtx, activeClient, cfg, instanceID, connectionEpoch, instance, token, gatewayToken, redirected)
 		sessionCancel()
 		if ctx.Err() != nil {
 			return nil
 		}
 		if instance.current() != instanceID {
 			continue
+		}
+		var redirect *sessionRedirectError
+		if errors.As(err, &redirect) {
+			peerConn, dialErr := dialSupervisorEndpoint(redirect.endpoint, cfg.TLSConfig)
+			if dialErr == nil {
+				if activeConn != conn {
+					_ = activeConn.Close()
+				}
+				activeConn = peerConn
+				activeClient = openshellv1.NewOpenShellClient(peerConn)
+				redirected = true
+				backoff = cfg.MinBackoff
+				continue
+			}
+			cfg.Log.Warn("supervisor redirect dial failed; returning to configured Gateway", slog.String("endpoint", redirect.endpoint), slogx.Err(dialErr))
+			if redirected {
+				if activeConn != conn {
+					_ = activeConn.Close()
+				}
+				activeConn, activeClient, redirected = conn, client, false
+			}
+		} else if redirected {
+			if activeConn != conn {
+				_ = activeConn.Close()
+			}
+			activeConn = conn
+			activeClient = client
+			redirected = false
 		}
 		if time.Since(started) > 2*relayproto.KeepaliveTimeout {
 			backoff = cfg.MinBackoff
@@ -118,6 +154,22 @@ func runSupervisorGRPC(ctx context.Context, cfg Config) error {
 			backoff = cfg.MaxBackoff
 		}
 	}
+}
+
+func dialSupervisorEndpoint(endpoint string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {
+	target, secure, err := grpcTarget(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	transport := credentials.TransportCredentials(insecure.NewCredentials())
+	if secure {
+		config := tlsConfig
+		if config == nil {
+			config = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
+		transport = credentials.NewTLS(config.Clone())
+	}
+	return grpc.NewClient(target, grpc.WithTransportCredentials(transport))
 }
 
 type supervisorToken struct {

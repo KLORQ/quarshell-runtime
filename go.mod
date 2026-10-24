@@ -7,7 +7,7 @@ toolchain go1.27.3
 require (
 	github.com/KLORQ/quarshell-core v0.5.2
 	github.com/KLORQ/quarshell-policy v0.2.2
-	github.com/KLORQ/quarshell-proto v0.2.6
+	github.com/KLORQ/quarshell-proto v0.2.7
 	github.com/landlock-lsm/go-landlock v0.10.1
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.47.0
